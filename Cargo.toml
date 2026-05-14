@@ -1,0 +1,23 @@
+[package]
+name = "granular_gate"
+version = "0.5.0"
+edition = "2021"
+authors = ["CertifiedCryp"]
+description = "Proper granular_gate - Rust resonance engine with Cap'n Proto + Particle Filter"
+
+[dependencies]
+capnp = "0.19"
+capnp-rpc = "0.19"
+tokio = { version = "1", features = ["full"] }
+log = "0.4"
+env_logger = "0.11"
+clap = { version = "4.5", features = ["derive"] }
+rand = "0.8"
+serde = { version = "1.0", features = ["derive"] }
+
+[build-dependencies]
+capnpc = "0.19"
+
+[[bin]]
+name = "granular_gate"
+path = "src/main.rs"

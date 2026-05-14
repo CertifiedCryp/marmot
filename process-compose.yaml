@@ -1,0 +1,63 @@
+version: "0.5"
+
+# process-compose.yaml
+# Proper orchestration for the granular_gate resonance machine
+# Run under systemctl. Claude manages this locally in JetBrains.
+# Only this file + binaries ever touch the server.
+
+processes:
+
+  eigenda_pulse:
+    command: "./eigenda_pulse_ingestor"   # Rust binary using alloy + capnproto
+    restart: "on-failure"
+    readiness_probe:
+      exec: "test -f /dev/shm/pulse_ready"
+    depends_on:
+      - granular_gate
+    env:
+      RUST_LOG: "info"
+      COULTER_ADDRESS: "0x543175626f9b1df9b9421A2dBC470D3DF9f5533d"
+
+  granular_gate:
+    command: "./target/release/granular_gate --mode daemon"
+    restart: "always"
+    readiness_probe:
+      exec: "test -f /dev/shm/granular_signal.capnp && grep -q 'resonanceLock' /dev/shm/granular_signal.capnp || true"
+    depends_on:
+      - eigenda_pulse
+    env:
+      RUST_LOG: "info"
+      CAPNP_SCHEMA: "/opt/granular/granular_gate.capnp"
+
+  zig_executor:
+    command: "/root/l1qd-exec-zig/zig-out/bin/executor"
+    restart: "always"
+    depends_on:
+      - granular_gate
+    readiness_probe:
+      exec: "pgrep -f executor > /dev/null"
+
+  rustnet_monitor:
+    command: "rustnet --filter 'port:8545,port:443,process:granular_gate,process:eigenda_pulse' --headless"
+    restart: "always"
+    depends_on:
+      - granular_gate
+    env:
+      RUSTNET_LOG: "info"
+
+  # Optional: light process that tails signals and pushes to Marmot lattice
+  marmot_ingest:
+    command: "./marmot_ingest --source /dev/shm --lattice granular_resonance"
+    restart: "on-failure"
+    depends_on:
+      - granular_gate
+      - rustnet_monitor
+
+# Health & resonance policy (enforced by process-compose + granular_gate)
+# resonance_lock > 0.92 + pf_mu > 11 + ess > 30 + network_toxicity < 0.2 = HUNT
+
+# To run locally with Claude:
+#   process-compose up -tui
+#
+# To run under systemctl (production):
+#   sudo systemctl enable --now granular-resonance
