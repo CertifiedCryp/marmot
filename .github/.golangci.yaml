@@ -1,0 +1,43 @@
+version: "2"
+linters:
+  enable:
+    - gocritic
+    - gosec
+  settings:
+    errcheck:
+      exclude-functions:
+        - (github.com/jackc/pgx/v5.Tx).Rollback
+        - (*github.com/jackc/pgx/v5/pgxpool.Conn).Release
+        - (*github.com/spf13/viper.Viper).BindEnv
+        - (*github.com/spf13/cobra.Command).MarkFlagRequired
+    staticcheck:
+      checks:
+        - -SA1019
+        - -SA5011
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - gosec
+        path: "_test\\.go"
+        text: "G101:"
+      - linters:
+          - gosec
+        path: "_test\\.go"
+        text: "G306:"
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

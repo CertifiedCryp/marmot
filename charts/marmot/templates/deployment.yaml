@@ -1,0 +1,191 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "marmot.fullname" . }}
+  labels:
+    {{- include "marmot.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "marmot.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "marmot.labels" . | nindent 8 }}
+        app.kubernetes.io/component: server
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "marmot.serviceAccountName" . }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          {{- with .Values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args: ["run", "--config", "/etc/marmot/config.yaml"]
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+            {{- if .Values.config.metrics.enabled }}
+            - name: metrics
+              containerPort: {{ .Values.config.metrics.port }}
+              protocol: TCP
+            {{- end }}
+          env:
+            # ---- Encryption key (secret) ----
+            {{- if or .Values.config.server.encryptionKeySecretRef .Values.config.server.autoGenerateEncryptionKey }}
+            {{- if and .Values.config.server.autoGenerateEncryptionKey .Values.config.server.encryptionKeySecretRef }}
+            {{- fail "Cannot specify both config.server.autoGenerateEncryptionKey and config.server.encryptionKeySecretRef" }}
+            {{- end }}
+            - name: MARMOT_SERVER_ENCRYPTION_KEY
+              {{- if .Values.config.server.encryptionKeySecretRef }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.config.server.encryptionKeySecretRef.name }}
+                  key: {{ .Values.config.server.encryptionKeySecretRef.key }}
+              {{- else }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "marmot.fullname" . }}-encryption-key
+                  key: encryption-key
+              {{- end }}
+            {{- end }}
+
+            # ---- Database subchart overrides (env vars take priority over config file) ----
+            {{- if .Values.cnpg.enabled }}
+            - name: MARMOT_DATABASE_HOST
+              {{- if .Values.cnpg.pooler.enabled }}
+              value: {{ include "marmot.fullname" . }}-pooler-rw
+              {{- else }}
+              value: {{ include "marmot.fullname" . }}-cnpg-rw
+              {{- end }}
+            - name: MARMOT_DATABASE_PORT
+              value: "5432"
+            - name: MARMOT_DATABASE_USER
+              value: {{ .Values.cnpg.username | default "marmot" | quote }}
+            - name: MARMOT_DATABASE_NAME
+              value: {{ .Values.cnpg.database | default "marmot" | quote }}
+            {{- else if .Values.postgresql.enabled }}
+            - name: MARMOT_DATABASE_HOST
+              {{- if eq (.Values.postgresql.architecture | default "standalone") "replication" }}
+              value: {{ include "marmot.fullname" . }}-postgresql-primary
+              {{- else }}
+              value: {{ include "marmot.fullname" . }}-postgresql
+              {{- end }}
+            - name: MARMOT_DATABASE_PORT
+              value: "5432"
+            - name: MARMOT_DATABASE_USER
+              value: {{ .Values.postgresql.auth.username | quote }}
+            - name: MARMOT_DATABASE_NAME
+              value: {{ .Values.postgresql.auth.database | quote }}
+            {{- end }}
+
+            # ---- Database password (secret) ----
+            {{- if .Values.cnpg.enabled }}
+            - name: MARMOT_DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "marmot.fullname" . }}-cnpg-auth
+                  key: password
+            {{- else if .Values.postgresql.enabled }}
+            - name: MARMOT_DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "marmot.fullname" . }}-postgresql
+                  key: password
+            {{- else if .Values.config.database.passwordSecretRef }}
+            - name: MARMOT_DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.config.database.passwordSecretRef.name }}
+                  key: {{ .Values.config.database.passwordSecretRef.key }}
+            {{- end }}
+
+            # ---- Elasticsearch password (secret) ----
+            {{- if and .Values.config.search .Values.config.search.elasticsearch }}
+            {{- if .Values.config.search.elasticsearch.passwordSecretRef }}
+            - name: MARMOT_SEARCH_ELASTICSEARCH_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.config.search.elasticsearch.passwordSecretRef.name }}
+                  key: {{ .Values.config.search.elasticsearch.passwordSecretRef.key }}
+            {{- end }}
+            {{- end }}
+
+            # ---- Auth provider client secrets ----
+            {{- $providers := dict "okta" "OKTA" "google" "GOOGLE" "github" "GITHUB" "gitlab" "GITLAB" "keycloak" "KEYCLOAK" "slack" "SLACK" "auth0" "AUTH0" "generic_oidc" "GENERIC_OIDC" }}
+            {{- range $key, $envName := $providers }}
+            {{- $provider := index $.Values.config.auth $key | default dict }}
+            {{- if and $provider.enabled $provider.clientSecretRef }}
+            - name: MARMOT_AUTH_{{ $envName }}_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $provider.clientSecretRef.name }}
+                  key: {{ $provider.clientSecretRef.key }}
+            {{- end }}
+            {{- end }}
+
+            # ---- Additional environment variables ----
+            {{- range $key, $value := .Values.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/marmot
+              readOnly: true
+            {{- with .Values.volumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with .Values.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "marmot.fullname" . }}-config
+        {{- with .Values.volumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

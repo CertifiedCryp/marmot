@@ -1,0 +1,211 @@
+version: 2
+project_name: marmot
+
+env:
+  - GO111MODULE=on
+  - CGO_ENABLED=1
+
+before:
+  hooks:
+    - make clean
+    - make swagger
+    - make frontend-build
+
+builds:
+  - id: marmot-linux-amd64
+    main: ./cmd/main.go
+    binary: marmot
+    goos: [linux]
+    goarch: [amd64]
+    env:
+      - CGO_ENABLED=1
+      - CC=x86_64-linux-gnu-gcc
+      - CXX=x86_64-linux-gnu-g++
+    flags:
+      - -tags=production,netgo,osusergo
+    ldflags:
+      - -s -w
+      - -X github.com/marmotdata/marmot/internal/cmd.Version={{.Version}}
+      - -extldflags "-static"
+
+  - id: marmot-linux-arm64
+    main: ./cmd/main.go
+    binary: marmot
+    goos: [linux]
+    goarch: [arm64]
+    env:
+      - CGO_ENABLED=1
+      - CC=aarch64-linux-gnu-gcc
+      - CXX=aarch64-linux-gnu-g++
+    flags:
+      - -tags=production,netgo,osusergo
+    ldflags:
+      - -s -w
+      - -X github.com/marmotdata/marmot/internal/cmd.Version={{.Version}}
+      - -extldflags "-static"
+
+  - id: marmot-darwin-amd64
+    main: ./cmd/main.go
+    binary: marmot
+    goos: [darwin]
+    goarch: [amd64]
+    env:
+      - CGO_ENABLED=1
+      - CC=o64-clang
+      - CXX=o64-clang++
+      - MACOSX_DEPLOYMENT_TARGET=11.0
+    flags:
+      - -tags=production
+    ldflags:
+      - -s -w
+      - -X github.com/marmotdata/marmot/internal/cmd.Version={{.Version}}
+
+  - id: marmot-darwin-arm64
+    main: ./cmd/main.go
+    binary: marmot
+    goos: [darwin]
+    goarch: [arm64]
+    env:
+      - CGO_ENABLED=1
+      - CC=oa64-clang
+      - CXX=oa64-clang++
+      - MACOSX_DEPLOYMENT_TARGET=11.0
+    flags:
+      - -tags=production
+    ldflags:
+      - -s -w
+      - -X github.com/marmotdata/marmot/internal/cmd.Version={{.Version}}
+
+archives:
+  - id: marmot
+    format: tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - README.md
+      - LICENSE
+
+checksum:
+  name_template: "{{ .ProjectName }}_{{ .Version }}_checksums.txt"
+  algorithm: sha256
+
+dockers:
+  - image_templates:
+      - "ghcr.io/marmotdata/marmot:{{ .Version }}-amd64"
+      - "ghcr.io/marmotdata/marmot:latest-amd64"
+    ids: [marmot-linux-amd64]
+    dockerfile: Dockerfile.goreleaser
+    use: buildx
+    build_flag_templates:
+      - "--platform=linux/amd64"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.title={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+    goos: linux
+    goarch: amd64
+
+  - image_templates:
+      - "ghcr.io/marmotdata/marmot:{{ .Version }}-arm64"
+      - "ghcr.io/marmotdata/marmot:latest-arm64"
+    ids: [marmot-linux-arm64]
+    dockerfile: Dockerfile.goreleaser
+    use: buildx
+    build_flag_templates:
+      - "--platform=linux/arm64"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.title={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+    goos: linux
+    goarch: arm64
+
+  - image_templates:
+      - "ghcr.io/marmotdata/marmot:{{ .Version }}-distroless-amd64"
+      - "ghcr.io/marmotdata/marmot:latest-distroless-amd64"
+    ids: [marmot-linux-amd64]
+    dockerfile: Dockerfile.goreleaser.distroless
+    use: buildx
+    build_flag_templates:
+      - "--platform=linux/amd64"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.title={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+    goos: linux
+    goarch: amd64
+
+  - image_templates:
+      - "ghcr.io/marmotdata/marmot:{{ .Version }}-distroless-arm64"
+      - "ghcr.io/marmotdata/marmot:latest-distroless-arm64"
+    ids: [marmot-linux-arm64]
+    dockerfile: Dockerfile.goreleaser.distroless
+    use: buildx
+    build_flag_templates:
+      - "--platform=linux/arm64"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.title={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+    goos: linux
+    goarch: arm64
+
+docker_manifests:
+  - name_template: "ghcr.io/marmotdata/marmot:{{ .Version }}"
+    image_templates:
+      - "ghcr.io/marmotdata/marmot:{{ .Version }}-amd64"
+      - "ghcr.io/marmotdata/marmot:{{ .Version }}-arm64"
+
+  - name_template: "ghcr.io/marmotdata/marmot:latest"
+    image_templates:
+      - "ghcr.io/marmotdata/marmot:latest-amd64"
+      - "ghcr.io/marmotdata/marmot:latest-arm64"
+    skip_push: '{{ contains .Version "preview" }}'
+
+  - name_template: "ghcr.io/marmotdata/marmot:{{ .Major }}.{{ .Minor }}"
+    image_templates:
+      - "ghcr.io/marmotdata/marmot:{{ .Version }}-amd64"
+      - "ghcr.io/marmotdata/marmot:{{ .Version }}-arm64"
+    skip_push: '{{ contains .Version "preview" }}'
+
+  - name_template: "ghcr.io/marmotdata/marmot:{{ .Version }}-distroless"
+    image_templates:
+      - "ghcr.io/marmotdata/marmot:{{ .Version }}-distroless-amd64"
+      - "ghcr.io/marmotdata/marmot:{{ .Version }}-distroless-arm64"
+
+  - name_template: "ghcr.io/marmotdata/marmot:latest-distroless"
+    image_templates:
+      - "ghcr.io/marmotdata/marmot:latest-distroless-amd64"
+      - "ghcr.io/marmotdata/marmot:latest-distroless-arm64"
+    skip_push: '{{ contains .Version "preview" }}'
+
+  - name_template: "ghcr.io/marmotdata/marmot:{{ .Major }}.{{ .Minor }}-distroless"
+    image_templates:
+      - "ghcr.io/marmotdata/marmot:{{ .Version }}-distroless-amd64"
+      - "ghcr.io/marmotdata/marmot:{{ .Version }}-distroless-arm64"
+    skip_push: '{{ contains .Version "preview" }}'
+
+release:
+  github:
+    owner: marmotdata
+    name: marmot
+  prerelease: auto
+  draft: false
+  name_template: "v{{.Version}}"
+
+changelog:
+  use: github
+  sort: asc
+  abbrev: 0
+  groups:
+    - title: Features
+      regexp: "^.*feat[(\\w)]*:+.*$"
+      order: 0
+    - title: 'Bug fixes'
+      regexp: "^.*fix[(\\w)]*:+.*$"
+      order: 1
+    - title: Others
+      order: 999
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'

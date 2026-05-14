@@ -1,0 +1,763 @@
+package query
+
+import (
+	"fmt"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func TestNewBuilder(t *testing.T) {
+	builder := NewBuilder()
+	assert.NotNil(t, builder)
+}
+
+func TestBuildSQL(t *testing.T) {
+	builder := NewBuilder()
+	baseQuery := "SELECT id, metadata FROM documents"
+
+	tests := []struct {
+		name           string
+		query          *Query
+		baseQuery      string
+		expectedSQL    string
+		expectedParams []interface{}
+	}{
+		{
+			name:           "Empty Query",
+			query:          &Query{},
+			baseQuery:      baseQuery,
+			expectedSQL:    "SELECT id, metadata FROM documents) SELECT * FROM search_results ORDER BY search_rank DESC",
+			expectedParams: []interface{}{""},
+		},
+		{
+			name: "Bool Query",
+			query: &Query{
+				Bool: &BooleanQuery{
+					Must: []Filter{
+						{
+							Field:     []string{"field1"},
+							FieldType: FieldMetadata,
+							Operator:  OpEquals,
+							Value:     "value1",
+						},
+					},
+				},
+			},
+			baseQuery:      baseQuery,
+			expectedSQL:    "SELECT id, metadata FROM documents WHERE metadata @> $2::jsonb) SELECT * FROM search_results ORDER BY search_rank DESC",
+			expectedParams: []interface{}{"", `{"field1":"value1"}`},
+		},
+		{
+			name: "FreeText Query",
+			query: &Query{
+				FreeText: "search term",
+			},
+			baseQuery:      baseQuery,
+			expectedSQL:    "SELECT id, metadata FROM documents WHERE (search_text @@ websearch_to_tsquery('english', $2) OR word_similarity($2, name) > 0.3)) SELECT * FROM search_results ORDER BY search_rank DESC",
+			expectedParams: []interface{}{"", "search term"},
+		},
+		{
+			name: "Combined Query",
+			query: &Query{
+				Bool: &BooleanQuery{
+					Must: []Filter{
+						{
+							Field:     []string{"field1"},
+							FieldType: FieldMetadata,
+							Operator:  OpEquals,
+							Value:     "value1",
+						},
+					},
+				},
+				FreeText: "search term",
+			},
+			baseQuery:      baseQuery,
+			expectedSQL:    "SELECT id, metadata FROM documents WHERE metadata @> $2::jsonb AND (search_text @@ websearch_to_tsquery('english', $3) OR word_similarity($3, name) > 0.3)) SELECT * FROM search_results ORDER BY search_rank DESC",
+			expectedParams: []interface{}{"", `{"field1":"value1"}`, "search term"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sql, params, err := builder.BuildSQL(tt.query, tt.baseQuery)
+			require.NoError(t, err)
+			assert.Equal(t, tt.expectedSQL, sql)
+			assert.Equal(t, tt.expectedParams, params)
+		})
+	}
+}
+
+func TestBuildConditions(t *testing.T) {
+	b := NewBuilder()
+
+	tests := []struct {
+		name             string
+		bq               *BooleanQuery
+		expectedConds    []string
+		expectedParams   []interface{}
+		expectedStartIdx int
+	}{
+		{
+			name: "Must, Should, MustNot",
+			bq: &BooleanQuery{
+				Must: []Filter{
+					{
+						Field:     []string{"field1"},
+						FieldType: FieldMetadata,
+						Operator:  OpEquals,
+						Value:     "value1",
+					},
+				},
+				Should: []Filter{
+					{
+						Field:     []string{"field2"},
+						FieldType: FieldMetadata,
+						Operator:  OpEquals,
+						Value:     "value2",
+					},
+				},
+				MustNot: []Filter{
+					{
+						Field:     []string{"field3"},
+						FieldType: FieldMetadata,
+						Operator:  OpEquals,
+						Value:     "value3",
+					},
+				},
+			},
+			expectedConds:    []string{"(metadata @> $1::jsonb) OR metadata @> $2::jsonb OR NOT (metadata @> $3::jsonb)"},
+			expectedParams:   []interface{}{`{"field1":"value1"}`, `{"field2":"value2"}`, `{"field3":"value3"}`},
+			expectedStartIdx: 0,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			conditions, params, err := b.BuildConditions(tt.bq)
+			require.NoError(t, err)
+			assert.Equal(t, tt.expectedConds, conditions)
+			assert.Equal(t, tt.expectedParams, params)
+		})
+	}
+}
+
+func TestBuildBooleanConditions(t *testing.T) {
+	b := NewBuilder()
+
+	tests := []struct {
+		name             string
+		bq               *BooleanQuery
+		expectedConds    []string
+		expectedParams   []interface{}
+		expectedStartIdx int
+	}{
+		{
+			name: "Must",
+			bq: &BooleanQuery{
+				Must: []Filter{
+					{
+						Field:     []string{"field1"},
+						FieldType: FieldMetadata,
+						Operator:  OpEquals,
+						Value:     "value1",
+					},
+					{
+						Field:     []string{"field2"},
+						FieldType: FieldMetadata,
+						Operator:  OpEquals,
+						Value:     "value2",
+					},
+				},
+			},
+			expectedConds:    []string{"metadata @> $1::jsonb", "metadata @> $2::jsonb"},
+			expectedParams:   []interface{}{`{"field1":"value1"}`, `{"field2":"value2"}`},
+			expectedStartIdx: 0,
+		},
+		{
+			name: "Should",
+			bq: &BooleanQuery{
+				Should: []Filter{
+					{
+						Field:     []string{"field1"},
+						FieldType: FieldMetadata,
+						Operator:  OpEquals,
+						Value:     "value1",
+					},
+					{
+						Field:     []string{"field2"},
+						FieldType: FieldMetadata,
+						Operator:  OpEquals,
+						Value:     "value2",
+					},
+				},
+			},
+			expectedConds:    []string{"metadata @> $1::jsonb OR metadata @> $2::jsonb"},
+			expectedParams:   []interface{}{`{"field1":"value1"}`, `{"field2":"value2"}`},
+			expectedStartIdx: 0,
+		},
+		{
+			name: "MustNot",
+			bq: &BooleanQuery{
+				MustNot: []Filter{
+					{
+						Field:     []string{"field1"},
+						FieldType: FieldMetadata,
+						Operator:  OpEquals,
+						Value:     "value1",
+					},
+					{
+						Field:     []string{"field2"},
+						FieldType: FieldMetadata,
+						Operator:  OpEquals,
+						Value:     "value2",
+					},
+				},
+			},
+			expectedConds:    []string{"NOT (metadata @> $1::jsonb) OR NOT (metadata @> $2::jsonb)"},
+			expectedParams:   []interface{}{`{"field1":"value1"}`, `{"field2":"value2"}`},
+			expectedStartIdx: 0,
+		},
+		{
+			name: "Nested",
+			bq: &BooleanQuery{
+				Must: []Filter{
+					{
+						Field:     []string{"nested"},
+						FieldType: FieldMetadata,
+						Operator:  OpEquals,
+						Value: &BooleanQuery{
+							Must: []Filter{
+								{
+									Field:     []string{"field1"},
+									FieldType: FieldMetadata,
+									Operator:  OpEquals,
+									Value:     "value1",
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedConds:    []string{"(metadata @> $1::jsonb)"},
+			expectedParams:   []interface{}{`{"field1":"value1"}`},
+			expectedStartIdx: 0,
+		},
+		{
+			name: "Combined",
+			bq: &BooleanQuery{
+				Must: []Filter{
+					{
+						Field:     []string{"field1"},
+						FieldType: FieldMetadata,
+						Operator:  OpEquals,
+						Value:     "value1",
+					},
+				},
+				Should: []Filter{
+					{
+						Field:     []string{"field2"},
+						FieldType: FieldMetadata,
+						Operator:  OpEquals,
+						Value:     "value2",
+					},
+				},
+				MustNot: []Filter{
+					{
+						Field:     []string{"field3"},
+						FieldType: FieldMetadata,
+						Operator:  OpEquals,
+						Value:     "value3",
+					},
+				},
+			},
+			expectedConds:    []string{"(metadata @> $1::jsonb) OR metadata @> $2::jsonb OR NOT (metadata @> $3::jsonb)"},
+			expectedParams:   []interface{}{`{"field1":"value1"}`, `{"field2":"value2"}`, `{"field3":"value3"}`},
+			expectedStartIdx: 0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			conditions, params, newIndex, err := b.buildBooleanConditions(tt.bq, tt.expectedStartIdx)
+			require.NoError(t, err)
+			assert.Equal(t, tt.expectedConds, conditions)
+			assert.Equal(t, tt.expectedParams, params)
+			assert.Equal(t, tt.expectedStartIdx+len(tt.expectedParams), newIndex)
+		})
+	}
+}
+
+func TestBuildFilterCondition(t *testing.T) {
+	b := NewBuilder()
+
+	tests := []struct {
+		name             string
+		filter           Filter
+		expectedCond     string
+		expectedParams   []interface{}
+		expectedStartIdx int
+		expectedErr      error
+	}{
+		{
+			name: "Equals",
+			filter: Filter{
+				Field:     []string{"field1"},
+				FieldType: FieldMetadata,
+				Operator:  OpEquals,
+				Value:     "value1",
+			},
+			expectedCond:     "metadata @> $1::jsonb",
+			expectedParams:   []interface{}{`{"field1":"value1"}`},
+			expectedStartIdx: 0,
+			expectedErr:      nil,
+		},
+		{
+			name: "NotEquals",
+			filter: Filter{
+				Field:     []string{"field1"},
+				FieldType: FieldMetadata,
+				Operator:  OpNotEquals,
+				Value:     "value1",
+			},
+			expectedCond:     "metadata->>'field1' != $1",
+			expectedParams:   []interface{}{"value1"},
+			expectedStartIdx: 0,
+			expectedErr:      nil,
+		},
+		{
+			name: "Contains",
+			filter: Filter{
+				Field:     []string{"field1"},
+				FieldType: FieldMetadata,
+				Operator:  OpContains,
+				Value:     "value1",
+			},
+			expectedCond:     "metadata->>'field1' ILIKE $1",
+			expectedParams:   []interface{}{"%value1%"},
+			expectedStartIdx: 0,
+			expectedErr:      nil,
+		},
+		{
+			name: "Greater",
+			filter: Filter{
+				Field:     []string{"field1"},
+				FieldType: FieldMetadata,
+				Operator:  OpGreater,
+				Value:     10,
+			},
+			expectedCond:     "(metadata->>'field1')::numeric > $1::numeric",
+			expectedParams:   []interface{}{"10"},
+			expectedStartIdx: 0,
+			expectedErr:      nil,
+		},
+		{
+			name: "Less",
+			filter: Filter{
+				Field:     []string{"field1"},
+				FieldType: FieldMetadata,
+				Operator:  OpLess,
+				Value:     10,
+			},
+			expectedCond:     "(metadata->>'field1')::numeric < $1::numeric",
+			expectedParams:   []interface{}{"10"},
+			expectedStartIdx: 0,
+			expectedErr:      nil,
+		},
+		{
+			name: "GreaterEqual",
+			filter: Filter{
+				Field:     []string{"field1"},
+				FieldType: FieldMetadata,
+				Operator:  OpGreaterEqual,
+				Value:     10,
+			},
+			expectedCond:     "(metadata->>'field1')::numeric >= $1::numeric",
+			expectedParams:   []interface{}{"10"},
+			expectedStartIdx: 0,
+			expectedErr:      nil,
+		},
+		{
+			name: "LessEqual",
+			filter: Filter{
+				Field:     []string{"field1"},
+				FieldType: FieldMetadata,
+				Operator:  OpLessEqual,
+				Value:     10,
+			},
+			expectedCond:     "(metadata->>'field1')::numeric <= $1::numeric",
+			expectedParams:   []interface{}{"10"},
+			expectedStartIdx: 0,
+			expectedErr:      nil,
+		},
+		{
+			name: "Wildcard",
+			filter: Filter{
+				Field:     []string{"field1"},
+				FieldType: FieldMetadata,
+				Operator:  OpWildcard,
+				Value:     "val*ue*",
+			},
+			expectedCond:     "metadata->>'field1' ILIKE $1",
+			expectedParams:   []interface{}{"val%ue%"},
+			expectedStartIdx: 0,
+			expectedErr:      nil,
+		},
+		{
+			name: "Unsupported Operator",
+			filter: Filter{
+				Field:     []string{"field1"},
+				FieldType: FieldMetadata,
+				Operator:  "invalid",
+				Value:     "value1",
+			},
+			expectedCond:     "",
+			expectedParams:   nil,
+			expectedStartIdx: 0,
+			expectedErr:      fmt.Errorf("unsupported operator: invalid"),
+		},
+		{
+			name: "Nested Field",
+			filter: Filter{
+				Field:     []string{"parent", "child", "field1"},
+				FieldType: FieldMetadata,
+				Operator:  OpEquals,
+				Value:     "value1",
+			},
+			expectedCond:     "metadata @> $1::jsonb",
+			expectedParams:   []interface{}{`{"parent":{"child":{"field1":"value1"}}}`},
+			expectedStartIdx: 0,
+			expectedErr:      nil,
+		},
+		{
+			name: "FreeText",
+			filter: Filter{
+				Field:    []string{"freetext"},
+				Operator: OpEquals,
+				Value:    "searchTerm",
+			},
+			expectedCond:     "(search_text @@ websearch_to_tsquery('english', $1) OR word_similarity($1, name) > 0.3)",
+			expectedParams:   []interface{}{"searchTerm"},
+			expectedStartIdx: 0,
+			expectedErr:      nil,
+		},
+		{
+			name: "Nested Boolean",
+			filter: Filter{
+				Field:     []string{"nested"},
+				FieldType: FieldMetadata,
+				Operator:  OpEquals,
+				Value: &BooleanQuery{
+					Must: []Filter{
+						{
+							Field:     []string{"field1"},
+							FieldType: FieldMetadata,
+							Operator:  OpEquals,
+							Value:     "value1",
+						},
+					},
+				},
+			},
+			expectedCond:     "(metadata @> $1::jsonb)",
+			expectedParams:   []interface{}{`{"field1":"value1"}`},
+			expectedStartIdx: 0,
+			expectedErr:      nil,
+		},
+		// New tests for @type field
+		{
+			name: "Type Equals",
+			filter: Filter{
+				Field:     []string{"type"},
+				FieldType: FieldAssetType,
+				Operator:  OpEquals,
+				Value:     "dataset",
+			},
+			expectedCond:     "lower(type) = lower($1)",
+			expectedParams:   []interface{}{"dataset"},
+			expectedStartIdx: 0,
+			expectedErr:      nil,
+		},
+		{
+			name: "Type Contains",
+			filter: Filter{
+				Field:     []string{"type"},
+				FieldType: FieldAssetType,
+				Operator:  OpContains,
+				Value:     "data",
+			},
+			expectedCond:     "type ILIKE $1",
+			expectedParams:   []interface{}{"%data%"},
+			expectedStartIdx: 0,
+			expectedErr:      nil,
+		},
+		{
+			name: "Type NotEquals",
+			filter: Filter{
+				Field:     []string{"type"},
+				FieldType: FieldAssetType,
+				Operator:  OpNotEquals,
+				Value:     "table",
+			},
+			expectedCond:     "(type IS NULL OR lower(type) != lower($1))",
+			expectedParams:   []interface{}{"table"},
+			expectedStartIdx: 0,
+			expectedErr:      nil,
+		},
+		// @kind is handled at table selection level, not in WHERE clauses
+		{
+			name: "Kind Equals",
+			filter: Filter{
+				Field:     []string{"kind"},
+				FieldType: FieldKind,
+				Operator:  OpEquals,
+				Value:     "asset",
+			},
+			expectedCond:     "TRUE",
+			expectedParams:   nil,
+			expectedStartIdx: 0,
+			expectedErr:      nil,
+		},
+		{
+			name: "Kind Contains",
+			filter: Filter{
+				Field:     []string{"kind"},
+				FieldType: FieldKind,
+				Operator:  OpContains,
+				Value:     "gloss",
+			},
+			expectedCond:     "TRUE",
+			expectedParams:   nil,
+			expectedStartIdx: 0,
+			expectedErr:      nil,
+		},
+		// New tests for @provider field (array)
+		{
+			name: "Provider Equals",
+			filter: Filter{
+				Field:     []string{"provider"},
+				FieldType: FieldProvider,
+				Operator:  OpEquals,
+				Value:     "snowflake",
+			},
+			expectedCond:     "providers && ARRAY[$1]::text[]",
+			expectedParams:   []interface{}{"snowflake"},
+			expectedStartIdx: 0,
+			expectedErr:      nil,
+		},
+		{
+			name: "Provider Contains",
+			filter: Filter{
+				Field:     []string{"provider"},
+				FieldType: FieldProvider,
+				Operator:  OpContains,
+				Value:     "snow",
+			},
+			expectedCond:     "EXISTS (SELECT 1 FROM unnest(providers) AS elem WHERE lower(elem) LIKE lower($1))",
+			expectedParams:   []interface{}{"%snow%"},
+			expectedStartIdx: 0,
+			expectedErr:      nil,
+		},
+		{
+			name: "Provider NotEquals",
+			filter: Filter{
+				Field:     []string{"provider"},
+				FieldType: FieldProvider,
+				Operator:  OpNotEquals,
+				Value:     "bigquery",
+			},
+			expectedCond:     "NOT (providers && ARRAY[$1]::text[])",
+			expectedParams:   []interface{}{"bigquery"},
+			expectedStartIdx: 0,
+			expectedErr:      nil,
+		},
+		{
+			name: "Provider Wildcard Error",
+			filter: Filter{
+				Field:     []string{"provider"},
+				FieldType: FieldProvider,
+				Operator:  OpWildcard,
+				Value:     "snow*",
+			},
+			expectedCond:     "",
+			expectedParams:   nil,
+			expectedStartIdx: 0,
+			expectedErr:      fmt.Errorf("wildcard operator not supported for provider fields"),
+		},
+		{
+			name: "Provider Numeric Comparison Error",
+			filter: Filter{
+				Field:     []string{"provider"},
+				FieldType: FieldProvider,
+				Operator:  OpGreater,
+				Value:     10,
+			},
+			expectedCond:     "",
+			expectedParams:   nil,
+			expectedStartIdx: 0,
+			expectedErr:      fmt.Errorf("comparison operators not supported for provider fields"),
+		},
+		// New tests for @name field
+		{
+			name: "Name Equals",
+			filter: Filter{
+				Field:     []string{"name"},
+				FieldType: FieldName,
+				Operator:  OpEquals,
+				Value:     "myasset",
+			},
+			expectedCond:     "lower(name) = lower($1)",
+			expectedParams:   []interface{}{"myasset"},
+			expectedStartIdx: 0,
+			expectedErr:      nil,
+		},
+		{
+			name: "Name Contains",
+			filter: Filter{
+				Field:     []string{"name"},
+				FieldType: FieldName,
+				Operator:  OpContains,
+				Value:     "asset",
+			},
+			expectedCond:     "name ILIKE $1",
+			expectedParams:   []interface{}{"%asset%"},
+			expectedStartIdx: 0,
+			expectedErr:      nil,
+		},
+		{
+			name: "Name NotEquals",
+			filter: Filter{
+				Field:     []string{"name"},
+				FieldType: FieldName,
+				Operator:  OpNotEquals,
+				Value:     "otherasset",
+			},
+			expectedCond:     "lower(name) != lower($1)",
+			expectedParams:   []interface{}{"otherasset"},
+			expectedStartIdx: 0,
+			expectedErr:      nil,
+		},
+		{
+			name: "Name Wildcard",
+			filter: Filter{
+				Field:     []string{"name"},
+				FieldType: FieldName,
+				Operator:  OpWildcard,
+				Value:     "my*asset",
+			},
+			expectedCond:     "name ILIKE $1",
+			expectedParams:   []interface{}{"my%asset"},
+			expectedStartIdx: 0,
+			expectedErr:      nil,
+		},
+		// Edge cases for special characters in metadata values
+		{
+			name: "Metadata with quotes",
+			filter: Filter{
+				Field:     []string{"description"},
+				FieldType: FieldMetadata,
+				Operator:  OpEquals,
+				Value:     `value with "quotes"`,
+			},
+			expectedCond:     "metadata @> $1::jsonb",
+			expectedParams:   []interface{}{`{"description":"value with \"quotes\""}`},
+			expectedStartIdx: 0,
+			expectedErr:      nil,
+		},
+		{
+			name: "Metadata with backslash",
+			filter: Filter{
+				Field:     []string{"path"},
+				FieldType: FieldMetadata,
+				Operator:  OpEquals,
+				Value:     `C:\Users\test`,
+			},
+			expectedCond:     "metadata @> $1::jsonb",
+			expectedParams:   []interface{}{`{"path":"C:\\Users\\test"}`},
+			expectedStartIdx: 0,
+			expectedErr:      nil,
+		},
+		{
+			name: "Metadata with unicode",
+			filter: Filter{
+				Field:     []string{"label"},
+				FieldType: FieldMetadata,
+				Operator:  OpEquals,
+				Value:     "日本語テスト",
+			},
+			expectedCond:     "metadata @> $1::jsonb",
+			expectedParams:   []interface{}{`{"label":"日本語テスト"}`},
+			expectedStartIdx: 0,
+			expectedErr:      nil,
+		},
+		{
+			name: "Metadata with newlines",
+			filter: Filter{
+				Field:     []string{"note"},
+				FieldType: FieldMetadata,
+				Operator:  OpEquals,
+				Value:     "line1\nline2",
+			},
+			expectedCond:     "metadata @> $1::jsonb",
+			expectedParams:   []interface{}{`{"note":"line1\nline2"}`},
+			expectedStartIdx: 0,
+			expectedErr:      nil,
+		},
+		// Numeric value should be preserved as number in JSONB
+		{
+			name: "Metadata equals with numeric value",
+			filter: Filter{
+				Field:     []string{"nice"},
+				FieldType: FieldMetadata,
+				Operator:  OpEquals,
+				Value:     "5",
+			},
+			expectedCond:     "metadata @> $1::jsonb",
+			expectedParams:   []interface{}{`{"nice":5}`},
+			expectedStartIdx: 0,
+			expectedErr:      nil,
+		},
+		// Boolean values should be preserved
+		{
+			name: "Metadata equals with boolean true",
+			filter: Filter{
+				Field:     []string{"enabled"},
+				FieldType: FieldMetadata,
+				Operator:  OpEquals,
+				Value:     "true",
+			},
+			expectedCond:     "metadata @> $1::jsonb",
+			expectedParams:   []interface{}{`{"enabled":true}`},
+			expectedStartIdx: 0,
+			expectedErr:      nil,
+		},
+		// Invalid field name should be rejected
+		{
+			name: "Invalid field name with SQL injection attempt",
+			filter: Filter{
+				Field:     []string{"field'; DROP TABLE users;--"},
+				FieldType: FieldMetadata,
+				Operator:  OpEquals,
+				Value:     "value",
+			},
+			expectedCond:     "",
+			expectedParams:   nil,
+			expectedStartIdx: 0,
+			expectedErr:      fmt.Errorf("invalid field name: field'; DROP TABLE users;--"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			condition, params, newIndex, err := b.buildFilterCondition(tt.filter, tt.expectedStartIdx)
+			assert.Equal(t, tt.expectedCond, condition)
+			assert.Equal(t, tt.expectedParams, params)
+
+			if tt.expectedErr != nil {
+				assert.EqualError(t, err, tt.expectedErr.Error())
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tt.expectedStartIdx+len(tt.expectedParams), newIndex)
+			}
+		})
+	}
+}

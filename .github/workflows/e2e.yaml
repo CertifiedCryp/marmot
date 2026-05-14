@@ -1,0 +1,118 @@
+name: E2E Tests
+
+on:
+  workflow_dispatch:
+  issue_comment:
+    types: [created]
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+  checks: write
+
+jobs:
+  check-comment:
+    if: ${{ false && github.event_name == 'issue_comment' && github.event.issue.pull_request && contains(github.event.comment.body, '/test e2e') }}
+    runs-on: ubuntu-latest
+    outputs:
+      should-run: ${{ steps.check-permissions.outputs.result }}
+    steps:
+      - name: Check if commenter has permissions
+        id: check-permissions
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          result-encoding: string
+          script: |
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            const commenter = context.payload.comment.user.login;
+
+            // Check if commenter is the PR author
+            const { data: pr } = await github.rest.pulls.get({
+              owner,
+              repo,
+              pull_number: issue_number
+            });
+            const isPRAuthor = commenter === pr.user.login;
+
+            // Check if commenter is a repository maintainer
+            const { data: permission } = await github.rest.repos.getCollaboratorPermissionLevel({
+              owner,
+              repo,
+              username: commenter
+            });
+            const isMaintainer = ['admin', 'maintain', 'write'].includes(permission.permission);
+
+            return (isPRAuthor || isMaintainer) ? 'true' : 'false';
+
+      - name: Add reaction to comment
+        if: steps.check-permissions.outputs.result == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { owner, repo } = context.repo;
+            try {
+              await github.rest.reactions.createForIssueComment({
+                owner,
+                repo,
+                comment_id: context.payload.comment.id,
+                content: 'rocket'
+              });
+            } catch (error) {
+              console.log('Unable to add reaction, continuing workflow:', error);
+            }
+
+      - name: Notify if permission denied
+        if: steps.check-permissions.outputs.result != 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { owner, repo } = context.repo;
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: context.issue.number,
+              body: '⚠️ Only PR authors and repository maintainers can trigger E2E tests.'
+            });
+            try {
+              await github.rest.reactions.createForIssueComment({
+                owner,
+                repo,
+                comment_id: context.payload.comment.id,
+                content: '-1'
+              });
+            } catch (error) {
+              console.log('Unable to add reaction, continuing workflow:', error);
+            }
+
+  pr-check:
+    if: ${{ false && github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create pending check
+        uses: actions/github-script@v7
+        id: create-check
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { owner, repo } = context.repo;
+            const { data: check } = await github.rest.checks.create({
+              owner,
+              repo,
+              name: 'E2E Tests',
+              head_sha: context.payload.pull_request.head.sha,
+              status: 'completed',
+              conclusion: 'neutral',
+              output: {
+                title: 'E2E Tests',
+                summary: 'To run E2E tests, comment `/test e2e` on this PR'
+              }
+            });
+            return check.id;
+

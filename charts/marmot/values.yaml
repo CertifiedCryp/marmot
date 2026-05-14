@@ -1,0 +1,360 @@
+# Default values for marmot.
+
+replicaCount: 1
+
+image:
+  repository: ghcr.io/marmotdata/marmot
+  pullPolicy: IfNotPresent
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext:
+  fsGroup: 65534
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 65534
+
+service:
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: marmot.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+  #  - secretName: marmot-tls
+  #    hosts:
+  #      - marmot.local
+
+resources:
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+  requests:
+    cpu: 500m
+    memory: 512Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# Marmot application configuration
+config:
+  # Server configuration
+  server:
+    port: 8080
+    host: "0.0.0.0"
+    root_url: ""
+    custom_response_headers: {}
+
+    # Encryption key for pipeline credentials
+    # Option 1: Auto-generate (recommended for new deployments)
+    autoGenerateEncryptionKey: true
+    # Option 2: Reference existing secret (recommended for production)
+    # encryptionKeySecretRef:
+    #   name: "marmot-encryption-secret"
+    #   key: "encryption-key"
+
+    # Allow running without encryption (NOT RECOMMENDED)
+    allow_unencrypted: false
+
+    # TLS configuration for the server
+    # tls:
+    #   cert_path: "/path/to/cert.pem"
+    #   key_path: "/path/to/key.pem"
+    #   ca_cert_path: "/path/to/ca.pem"  # enables mutual TLS
+    #   insecure_skip_verify: false
+
+  # Database configuration
+  database:
+    # When postgresql.enabled or cnpg.enabled, host/port/user/name are
+    # automatically overridden by the subchart values.
+    host: "postgresql"
+    port: 5432
+    user: "marmot"
+    # passwordSecretRef:
+    #   name: "marmot-database-secret"
+    #   key: "password"
+    name: "marmot"
+    sslmode: "disable"
+    # Connection pool settings
+    max_conns: 100
+    idle_conns: 20
+    conn_lifetime: 30 # minutes
+
+  # Search configuration
+  search:
+    timeout: 10 # seconds
+    # Elasticsearch backend (optional, uses built-in search by default)
+    # elasticsearch:
+    #   enabled: false
+    #   addresses:
+    #     - "http://elasticsearch:9200"
+    #   username: ""
+    #   passwordSecretRef:
+    #     name: "elasticsearch-secret"
+    #     key: "password"
+    #   index: "marmot"
+    #   bulk_size: 500
+    #   flush_interval: 1000       # milliseconds
+    #   reindex_on_start: false
+    #   shards: 1
+    #   replicas: 0
+    #   tls:
+    #     insecure_skip_verify: false
+    #     ca_cert_path: ""
+    #     cert_path: ""
+    #     key_path: ""
+
+  # Logging configuration
+  logging:
+    level: "info"
+    format: "json"
+
+  # Authentication configuration
+  auth:
+    anonymous:
+      enabled: false
+      role: "user"
+
+    # OAuth providers — configured directly under auth to match the
+    # Marmot config struct (no "providers" wrapper).
+    #
+    # okta:
+    #   enabled: true
+    #   type: "okta"
+    #   name: "Okta"
+    #   client_id: ""
+    #   clientSecretRef:
+    #     name: "okta-secret"
+    #     key: "client-secret"
+    #   url: "https://your-org.okta.com"
+    #   redirect_url: ""
+    #   allow_signup: true
+    #   scopes:
+    #     - "openid"
+    #     - "profile"
+    #     - "email"
+    #   team_sync:
+    #     enabled: false
+    #     group:
+    #       claim: "groups"
+    #   group_mapping:
+    #     - group_name: "admins"
+    #       roles: ["admin"]
+    #   tls:
+    #     insecure_skip_verify: false
+    #     ca_cert_path: ""
+    #
+    # keycloak:
+    #   enabled: true
+    #   client_id: ""
+    #   clientSecretRef:
+    #     name: "keycloak-secret"
+    #     key: "client-secret"
+    #   url: "https://keycloak.example.com"
+    #   realm: "your-realm"
+    #   redirect_url: "https://marmot.example.com/api/v1/auth/callback/keycloak"
+    #   allow_signup: true
+    #   team_sync:
+    #     enabled: false
+    #     group:
+    #       claim: "groups"
+    #
+    # generic_oidc:
+    #   enabled: true
+    #   client_id: ""
+    #   clientSecretRef:
+    #     name: "oidc-secret"
+    #     key: "client-secret"
+    #   url: "https://your-oidc-provider.example.com"
+    #   redirect_url: "https://marmot.example.com/api/v1/auth/callback/generic_oidc"
+    #   allow_signup: true
+    #   team_sync:
+    #     enabled: false
+    #     group:
+    #       claim: "groups"
+
+  # Metrics configuration
+  metrics:
+    enabled: false
+    port: 9090
+    owner_metadata_fields:
+      - "owner"
+      - "ownedBy"
+      - "owningTeam"
+    schemas:
+      excluded_asset_types:
+        - "Service"
+      excluded_providers: []
+
+  # Rate limiting
+  rate_limit:
+    enabled: false
+
+  # UI configuration
+  ui:
+    banner:
+      enabled: false
+      dismissible: true
+      variant: "info" # info, warning, error, success
+      message: ""
+      id: "banner-1"
+
+  # Pipeline/ingestion configuration
+  pipelines:
+    max_workers: 10
+    scheduler_interval: 60 # seconds
+    lease_expiry: 300 # seconds
+    claim_expiry: 30 # seconds
+
+  # OpenLineage configuration
+  openlineage:
+    auth:
+      enabled: true
+
+  # Telemetry — anonymous usage data, disable with telemetry.enabled: false
+  telemetry:
+    enabled: true
+
+  # Operator config (for Marmot server-side awareness of operator features)
+  operator:
+    enabled: false
+    namespace: ""
+    service_account: "marmot-ingest"
+
+# Kubernetes operator for managing ingestion pipelines as CRDs
+operator:
+  enabled: false
+  replicas: 1
+  # Override image for operator (defaults to same as server)
+  image: {}
+  resources:
+    limits:
+      cpu: 500m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  leaderElect: true
+  watchNamespace: ""              # empty = all namespaces
+  metricsBindAddress: ":8090"
+  healthProbeBindAddress: ":8091"
+  marmot:
+    url: ""                       # auto-detected from service
+  # Default resources for ingestion Job pods (overridable per-CRD)
+  jobDefaults:
+    resources:
+      limits:
+        cpu: "1"
+        memory: 1Gi
+      requests:
+        cpu: 250m
+        memory: 256Mi
+    backoffLimit: 3
+    activeDeadlineSeconds: 3600
+
+# Prometheus ServiceMonitor
+monitoring:
+  serviceMonitor:
+    enabled: false
+    labels: {}
+    interval: 30s
+    scrapeTimeout: 10s
+    path: /metrics
+    annotations: {}
+
+# Additional environment variables
+env: {}
+
+# Bitnami PostgreSQL subchart
+# https://github.com/bitnami/charts/tree/main/bitnami/postgresql
+postgresql:
+  enabled: false
+  auth:
+    username: "marmot"
+    database: "marmot"
+  primary:
+    persistence:
+      enabled: true
+      size: 8Gi
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 100m
+        memory: 128Mi
+
+# CloudNativePG configuration
+# Requires the CNPG operator to be installed separately
+# https://cloudnative-pg.io/documentation/current/installation_upgrade/
+cnpg:
+  enabled: false
+  # PostgreSQL instances (1 primary + N-1 replicas)
+  instances: 3
+  image: "ghcr.io/cloudnative-pg/postgresql:16"
+  username: "marmot"
+  password: ""
+  database: "marmot"
+  # PostgreSQL parameters
+  parameters:
+    shared_buffers: "256MB"
+    work_mem: "64MB"
+    maintenance_work_mem: "128MB"
+    effective_cache_size: "1GB"
+    max_connections: "200"
+  # Storage configuration
+  persistence:
+    enabled: true
+    size: "8Gi"
+    # storageClass: ""
+  # Resource limits
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "500m"
+    limits:
+      memory: "2Gi"
+      cpu: "2000m"
+  # PgBouncer connection pooler
+  pooler:
+    enabled: true
+    instances: 2
+    poolMode: "transaction"
+    maxClientConn: 1000
+    defaultPoolSize: 25
+    reservePoolSize: 5
