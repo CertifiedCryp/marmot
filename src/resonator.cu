@@ -17,7 +17,6 @@ void Resonator::compute_harmonic_resonance(const std::vector<float>& spreads) {
     int n = spreads.size();
     if (n == 0) return;
 
-    // Pad to power of 2
     int fft_size = 1;
     while (fft_size < n) fft_size *= 2;
 
@@ -41,7 +40,6 @@ void Resonator::compute_harmonic_resonance(const std::vector<float>& spreads) {
     std::vector<float> power(fft_size / 2);
     cudaMemcpy(power.data(), d_power, (fft_size / 2) * sizeof(float), cudaMemcpyDeviceToHost);
 
-    // Find fundamental + harmonic strength
     float total = 0.0f, fundamental = 0.0f;
     for (int i = 0; i < fft_size / 2; ++i) total += power[i];
     for (int i = 1; i < 6 && i < fft_size / 2; ++i) fundamental += power[i];

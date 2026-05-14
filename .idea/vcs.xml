@@ -2,5 +2,9 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/build/_deps/immer-src" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/build/_deps/immer-src/extra/python/lib/pybind11" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/build/_deps/immer-src/extra/python/lib/pybind11/tools/clang" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/build/_deps/immer-src/tools/sinusoidal-sphinx-theme" vcs="Git" />
   </component>
 </project>
