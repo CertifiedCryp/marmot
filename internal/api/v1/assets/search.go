@@ -25,7 +25,7 @@ type SearchResponse struct {
 	Limit   int                    `json:"limit"`
 	Offset  int                    `json:"offset"`
 	Filters asset.AvailableFilters `json:"filters"`
-}
+} // @name AssetSearchResponse
 
 // @Summary Search assets
 // @Description Search for assets using query string and filters
@@ -219,7 +219,7 @@ func (h *Handler) lookupAsset(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch err {
 		case asset.ErrAssetNotFound:
-			http.NotFound(w, r)
+			common.RespondError(w, http.StatusNotFound, "asset not found")
 		default:
 			log.Error().
 				Err(err).

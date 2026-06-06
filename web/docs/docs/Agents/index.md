@@ -14,7 +14,13 @@ import { CalloutCard, DocCard, DocCardGrid, FeatureCard, FeatureGrid } from '@si
   <DocCard
     title="LangChain"
     description="Catalog tools and a callback handler for Python and TypeScript agents."
-    href="/docs/Agents/langchain"
+    docId="Agents/langchain"
     icon="simple-icons:langchain"
+  />
+  <DocCard
+    title="Claude Agent SDK"
+    description="Hooks for Anthropic's Agent SDK that auto-register the agent and capture lineage from MCP tool calls."
+    docId="Agents/claude-agent"
+    icon="simple-icons:claude"
   />
 </DocCardGrid>

@@ -2,6 +2,7 @@ package marmot
 
 import (
 	"context"
+	"errors"
 
 	apiclient "github.com/marmotdata/marmot/sdk/go/internal/gen/client"
 	"github.com/marmotdata/marmot/sdk/go/internal/gen/client/assets"
@@ -9,13 +10,13 @@ import (
 )
 
 // Asset is a single catalog entry.
-type Asset = models.AssetAsset
+type Asset = models.Asset
 
 // AssetSearchResults is the response from AssetsService.Search.
-type AssetSearchResults = models.V1AssetsSearchResponse
+type AssetSearchResults = models.AssetSearchResponse
 
 // AssetSummary is the response from AssetsService.Summary.
-type AssetSummary = models.V1AssetsAssetSummaryResponse
+type AssetSummary = models.AssetSummaryResponse
 
 // AssetSearchOptions filters AssetsService.Search.
 type AssetSearchOptions struct {
@@ -34,6 +35,24 @@ type CreateAssetInput struct {
 	Providers   []string
 	Description string
 	Tags        []string
+}
+
+// LookupInput identifies an asset by its natural key (type, service, name).
+type LookupInput struct {
+	Type    string
+	Service string
+	Name    string
+}
+
+// UpdateAssetInput is the input for AssetsService.Update. Empty fields are
+// omitted from the patch — the server treats absent fields as "leave unchanged".
+type UpdateAssetInput struct {
+	Name            string
+	Type            string
+	Description     string
+	UserDescription string
+	Providers       []string
+	Tags            []string
 }
 
 // AssetsService covers asset CRUD, search, summary, and tag management.
@@ -71,7 +90,7 @@ func (s *AssetsService) Search(ctx context.Context, opts AssetSearchOptions) (*A
 
 // Create creates a new asset.
 func (s *AssetsService) Create(ctx context.Context, in CreateAssetInput) (*Asset, error) {
-	body := &models.V1AssetsCreateRequest{
+	body := &models.CreateAssetRequest{
 		Name:        &in.Name,
 		Type:        &in.Type,
 		Providers:   in.Providers,
@@ -90,6 +109,52 @@ func (s *AssetsService) Create(ctx context.Context, in CreateAssetInput) (*Asset
 func (s *AssetsService) Get(ctx context.Context, id string) (*Asset, error) {
 	p := assets.NewGetAssetsIDParams().WithContext(ctx).WithID(id)
 	resp, err := s.gen.Assets.GetAssetsID(p)
+	if err != nil {
+		return nil, mapErr(err)
+	}
+	return resp.Payload, nil
+}
+
+// Lookup fetches an asset by its natural key. Returns *NotFoundError if
+// no asset matches; see Find for a nil-on-miss variant.
+func (s *AssetsService) Lookup(ctx context.Context, in LookupInput) (*Asset, error) {
+	p := assets.NewGetAssetsLookupTypeServiceNameParams().
+		WithContext(ctx).
+		WithType(in.Type).
+		WithService(in.Service).
+		WithName(in.Name)
+	resp, err := s.gen.Assets.GetAssetsLookupTypeServiceName(p)
+	if err != nil {
+		return nil, mapErr(err)
+	}
+	return resp.Payload, nil
+}
+
+// Find is like Lookup but returns (nil, nil) on a 404 instead of an error.
+func (s *AssetsService) Find(ctx context.Context, in LookupInput) (*Asset, error) {
+	asset, err := s.Lookup(ctx, in)
+	if err != nil {
+		var nf *NotFoundError
+		if errors.As(err, &nf) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return asset, nil
+}
+
+// Update modifies an existing asset by ID. Empty fields on in are skipped.
+func (s *AssetsService) Update(ctx context.Context, id string, in UpdateAssetInput) (*Asset, error) {
+	body := &models.UpdateAssetRequest{
+		Name:            in.Name,
+		Type:            in.Type,
+		Description:     in.Description,
+		UserDescription: in.UserDescription,
+		Providers:       in.Providers,
+		Tags:            in.Tags,
+	}
+	p := assets.NewPutAssetsIDParams().WithContext(ctx).WithID(id).WithAsset(body)
+	resp, err := s.gen.Assets.PutAssetsID(p)
 	if err != nil {
 		return nil, mapErr(err)
 	}
@@ -115,14 +180,14 @@ func (s *AssetsService) Summary(ctx context.Context) (*AssetSummary, error) {
 
 // AddTag adds a tag to an asset.
 func (s *AssetsService) AddTag(ctx context.Context, id, tag string) error {
-	p := assets.NewPostAssetsTagsIDParams().WithContext(ctx).WithID(id).WithTag(&models.V1AssetsTagRequest{Tag: &tag})
+	p := assets.NewPostAssetsTagsIDParams().WithContext(ctx).WithID(id).WithTag(&models.TagRequest{Tag: &tag})
 	_, err := s.gen.Assets.PostAssetsTagsID(p)
 	return mapErr(err)
 }
 
 // RemoveTag removes a tag from an asset.
 func (s *AssetsService) RemoveTag(ctx context.Context, id, tag string) error {
-	p := assets.NewDeleteAssetsTagsIDParams().WithContext(ctx).WithID(id).WithTag(&models.V1AssetsTagRequest{Tag: &tag})
+	p := assets.NewDeleteAssetsTagsIDParams().WithContext(ctx).WithID(id).WithTag(&models.TagRequest{Tag: &tag})
 	_, err := s.gen.Assets.DeleteAssetsTagsID(p)
 	return mapErr(err)
 }

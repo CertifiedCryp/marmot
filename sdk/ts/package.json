@@ -32,6 +32,11 @@
       "types": "./dist/integrations/langchain/index.d.ts",
       "import": "./dist/integrations/langchain/index.js",
       "require": "./dist/integrations/langchain/index.cjs"
+    },
+    "./claude-agent": {
+      "types": "./dist/integrations/claude-agent/index.d.ts",
+      "import": "./dist/integrations/claude-agent/index.js",
+      "require": "./dist/integrations/claude-agent/index.cjs"
     }
   },
   "files": [
@@ -46,7 +51,7 @@
     "lint": "biome check src tests",
     "format": "biome format --write src tests",
     "typecheck": "tsc --noEmit",
-    "generate": "openapi-typescript ../../docs/.openapi3.yaml -o src/_gen/schema.ts"
+    "generate": "openapi-typescript ../../docs/.openapi3.yaml -o src/_gen/schema.ts && node scripts/generate-models.mjs"
   },
   "dependencies": {
     "openapi-fetch": "^0.13.0",
