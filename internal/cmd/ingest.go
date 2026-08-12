@@ -71,38 +71,86 @@ type CompleteRunRequest struct {
 }
 
 type BatchCreateRequest struct {
-	Assets        []CreateAssetRequest     `json:"assets"`
-	Lineage       []CreateLineageRequest   `json:"lineage"`
-	Documentation []CreateDocRequest       `json:"documentation"`
-	Statistics    []CreateStatisticRequest `json:"statistics"`
-	Config        plugin.RawPluginConfig   `json:"config"`
-	PipelineName  string                   `json:"pipeline_name"`
-	SourceName    string                   `json:"source_name"`
-	RunID         string                   `json:"run_id"`
+	Assets        []CreateAssetRequest        `json:"assets"`
+	Lineage       []CreateLineageRequest      `json:"lineage"`
+	Documentation []CreateDocRequest          `json:"documentation"`
+	Statistics    []CreateStatisticRequest    `json:"statistics"`
+	RunHistory    []CreateRunHistoryRequest   `json:"run_history"`
+	GlossaryTerms []CreateGlossaryTermRequest `json:"glossary_terms,omitempty"`
+	Config        plugin.RawPluginConfig      `json:"config"`
+	PipelineName  string                      `json:"pipeline_name"`
+	SourceName    string                      `json:"source_name"`
+	RunID         string                      `json:"run_id"`
+}
+
+// CreateGlossaryTermRequest is one business term the source system
+// curates. Identity is the Name, so Parent names the term this one sits
+// under. A server that predates this field ignores it.
+type CreateGlossaryTermRequest struct {
+	Name        string                 `json:"name"`
+	Definition  string                 `json:"definition"`
+	Description string                 `json:"description,omitempty"`
+	Parent      string                 `json:"parent,omitempty"`
+	Synonyms    []string               `json:"synonyms,omitempty"`
+	Tags        []string               `json:"tags,omitempty"`
+	Metadata    map[string]interface{} `json:"metadata,omitempty"`
 }
 
 type CreateAssetRequest struct {
-	Name          string                 `json:"name"`
-	Type          string                 `json:"type"`
-	Providers     []string               `json:"providers"`
-	Description   *string                `json:"description"`
-	Metadata      map[string]interface{} `json:"metadata"`
-	Schema        map[string]interface{} `json:"schema"`
-	Tags          []string               `json:"tags"`
-	Sources       []string               `json:"sources"`
-	ExternalLinks []map[string]string    `json:"external_links"`
+	Name string `json:"name"`
+	// MRN is the identity the plugin assigned. It is sent separately from
+	// Name because the two differ: a table is identified by its whole
+	// path and read by its own name. A server that predates this field
+	// ignores it and derives the MRN from Name, as before.
+	MRN         string                 `json:"mrn,omitempty"`
+	Type        string                 `json:"type"`
+	Providers   []string               `json:"providers"`
+	Description *string                `json:"description"`
+	Metadata    map[string]interface{} `json:"metadata"`
+	Schema      map[string]interface{} `json:"schema"`
+	Tags        []string               `json:"tags"`
+	// Sources carry the provenance a plugin recorded: which run wrote the
+	// asset, when, with what properties and at what priority. Sending only
+	// the names left the Sources panel permanently blank for every
+	// plugin-ingested asset.
+	Sources       []AssetSource       `json:"sources"`
+	ExternalLinks []map[string]string `json:"external_links"`
+	// Terms are the names of glossary terms the source assigned to this
+	// asset. An older server ignores them, so an asset still lands.
+	Terms []string `json:"terms,omitempty"`
+}
+
+type AssetSource struct {
+	Name       string                 `json:"name"`
+	LastSyncAt time.Time              `json:"last_sync_at"`
+	Properties map[string]interface{} `json:"properties,omitempty"`
+	Priority   int                    `json:"priority"`
 }
 
 type CreateLineageRequest struct {
 	Source string `json:"source"`
 	Target string `json:"target"`
 	Type   string `json:"type"`
+	JobMRN string `json:"job_mrn,omitempty"`
 }
 
 type CreateDocRequest struct {
 	AssetMRN string `json:"asset_mrn"`
 	Content  string `json:"content"`
 	Type     string `json:"type"`
+}
+
+// CreateRunHistoryRequest is one run event a plugin observed, flattened
+// from the per-asset run history a discovery returns.
+type CreateRunHistoryRequest struct {
+	AssetMRN     string                 `json:"asset_mrn"`
+	RunID        string                 `json:"run_id"`
+	JobNamespace string                 `json:"job_namespace"`
+	JobName      string                 `json:"job_name"`
+	EventType    string                 `json:"event_type"`
+	EventTime    time.Time              `json:"event_time"`
+	RunFacets    map[string]interface{} `json:"run_facets,omitempty"`
+	JobFacets    map[string]interface{} `json:"job_facets,omitempty"`
 }
 
 type CreateStatisticRequest struct {
@@ -116,6 +164,16 @@ type BatchCreateResponse struct {
 	Lineage              []LineageResult       `json:"lineage"`
 	Documentation        []DocumentationResult `json:"documentation"`
 	StaleEntitiesRemoved []string              `json:"stale_entities_removed,omitempty"`
+	// Glossary is absent when the source curates no business terms, and
+	// from servers that predate them.
+	Glossary *GlossaryResult `json:"glossary,omitempty"`
+}
+
+type GlossaryResult struct {
+	TermsCreated   int `json:"terms_created"`
+	TermsUpdated   int `json:"terms_updated"`
+	TermsUnchanged int `json:"terms_unchanged"`
+	AssetsLinked   int `json:"assets_linked"`
 }
 
 type AssetResult struct {
@@ -144,14 +202,17 @@ type DocumentationResult struct {
 }
 
 type Summary struct {
-	AssetsCreated      int
-	AssetsUpdated      int
-	AssetsDeleted      int
-	AssetsUnchanged    int
-	LineageCreated     int
-	LineageUpdated     int
-	DocumentationAdded int
-	ErrorsEncountered  int
+	AssetsCreated        int
+	AssetsUpdated        int
+	AssetsDeleted        int
+	AssetsUnchanged      int
+	LineageCreated       int
+	LineageUpdated       int
+	DocumentationAdded   int
+	GlossaryTermsCreated int
+	GlossaryTermsUpdated int
+	AssetsTermsLinked    int
+	ErrorsEncountered    int
 }
 
 type DestroyRunResponse struct {
@@ -172,6 +233,9 @@ func init() {
 var ingestCmd = &cobra.Command{
 	Use:   "ingest",
 	Short: "Ingest data from sources into Marmot",
+	PreRun: func(cmd *cobra.Command, args []string) {
+		loadPlugins()
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runIngestion(cmd.Context())
 	},
@@ -259,6 +323,7 @@ func (c *apiClient) newRequest(ctx context.Context, method, path string, body in
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", "marmot-cli")
 	if c.isSAToken {
 		req.Header.Set("Authorization", "Bearer "+c.token)
 	} else if c.token != "" {
@@ -472,13 +537,24 @@ func executeRun(ctx context.Context, run plugin.SourceRun, client *apiClient, ov
 					schema[k] = v
 				}
 
-				sources := make([]string, len(asset.Sources))
+				sources := make([]AssetSource, len(asset.Sources))
 				for j, source := range asset.Sources {
-					sources[j] = source.Name
+					sources[j] = AssetSource{
+						Name:       source.Name,
+						LastSyncAt: source.LastSyncAt,
+						Properties: source.Properties,
+						Priority:   source.Priority,
+					}
+				}
+
+				assetMRN := ""
+				if asset.MRN != nil {
+					assetMRN = *asset.MRN
 				}
 
 				assets = append(assets, CreateAssetRequest{
 					Name:          name,
+					MRN:           assetMRN,
 					Type:          asset.Type,
 					Providers:     asset.Providers,
 					Description:   asset.Description,
@@ -487,6 +563,7 @@ func executeRun(ctx context.Context, run plugin.SourceRun, client *apiClient, ov
 					Tags:          asset.Tags,
 					Sources:       sources,
 					ExternalLinks: convertExternalLinks(asset.ExternalLinks),
+					Terms:         asset.Terms,
 				})
 			}
 
@@ -496,6 +573,7 @@ func executeRun(ctx context.Context, run plugin.SourceRun, client *apiClient, ov
 					Source: edge.Source,
 					Target: edge.Target,
 					Type:   edge.Type,
+					JobMRN: edge.JobMRN,
 				})
 			}
 
@@ -508,10 +586,41 @@ func executeRun(ctx context.Context, run plugin.SourceRun, client *apiClient, ov
 				})
 			}
 
+			runHistory := make([]CreateRunHistoryRequest, 0)
+			for _, assetRuns := range result.RunHistory {
+				for _, event := range assetRuns.Runs {
+					runHistory = append(runHistory, CreateRunHistoryRequest{
+						AssetMRN:     assetRuns.AssetMRN,
+						RunID:        event.RunID,
+						JobNamespace: event.JobNamespace,
+						JobName:      event.JobName,
+						EventType:    event.EventType,
+						EventTime:    event.EventTime,
+						RunFacets:    event.RunFacets,
+						JobFacets:    event.JobFacets,
+					})
+				}
+			}
+
+			glossaryTerms := make([]CreateGlossaryTermRequest, 0, len(result.GlossaryTerms))
+			for _, term := range result.GlossaryTerms {
+				glossaryTerms = append(glossaryTerms, CreateGlossaryTermRequest{
+					Name:        term.Name,
+					Definition:  term.Definition,
+					Description: term.Description,
+					Parent:      term.Parent,
+					Synonyms:    term.Synonyms,
+					Tags:        term.Tags,
+					Metadata:    term.Metadata,
+				})
+			}
+
 			batchReq := BatchCreateRequest{
 				Assets:        assets,
 				Lineage:       lineage,
 				Documentation: documentation,
+				RunHistory:    runHistory,
+				GlossaryTerms: glossaryTerms,
 				Config:        maskedConfig,
 				PipelineName:  config.Name,
 				SourceName:    sourceName,
@@ -534,6 +643,7 @@ func executeRun(ctx context.Context, run plugin.SourceRun, client *apiClient, ov
 			processAssetResults(assetResponse.Assets, runSummary, overallSummary)
 			processLineageResults(assetResponse.Lineage, runSummary, overallSummary)
 			processDocumentationResults(assetResponse.Documentation, runSummary, overallSummary)
+			processGlossaryResult(assetResponse.Glossary, runSummary, overallSummary)
 
 			runSummary.AssetsDeleted = len(assetResponse.StaleEntitiesRemoved)
 			overallSummary.AssetsDeleted += runSummary.AssetsDeleted
@@ -629,6 +739,30 @@ func processDocumentationResults(results []DocumentationResult, runSummary *plug
 			overallSummary.DocumentationAdded++
 			printChange(symbolAdd, "documentation", result.Type, result.AssetMRN, statusCreated)
 		}
+	}
+}
+
+// processGlossaryResult folds what the server did to the glossary into
+// the run and overall summaries. A server that knows nothing about
+// glossary terms sends nothing, and the run reports nothing.
+func processGlossaryResult(result *GlossaryResult, runSummary *plugin.RunSummary, overallSummary *Summary) {
+	if result == nil {
+		return
+	}
+
+	runSummary.GlossaryTermsCreated = result.TermsCreated
+	runSummary.GlossaryTermsUpdated = result.TermsUpdated
+	runSummary.AssetsTermsLinked = result.AssetsLinked
+
+	overallSummary.GlossaryTermsCreated += result.TermsCreated
+	overallSummary.GlossaryTermsUpdated += result.TermsUpdated
+	overallSummary.AssetsTermsLinked += result.AssetsLinked
+
+	if result.TermsCreated > 0 {
+		printChange(symbolAdd, "glossary", "", fmt.Sprintf("%d terms", result.TermsCreated), statusCreated)
+	}
+	if result.TermsUpdated > 0 {
+		printChange(symbolUpdate, "glossary", "", fmt.Sprintf("%d terms", result.TermsUpdated), statusUpdated)
 	}
 }
 
@@ -740,6 +874,21 @@ func printSummary(summary *Summary) {
 		fmt.Printf("Documentation: %s%d added%s\n", colorGreen, summary.DocumentationAdded, colorReset)
 	}
 
+	changes = []string{}
+	if summary.GlossaryTermsCreated > 0 {
+		changes = append(changes, fmt.Sprintf("%s%d created%s", colorGreen, summary.GlossaryTermsCreated, colorReset))
+	}
+	if summary.GlossaryTermsUpdated > 0 {
+		changes = append(changes, fmt.Sprintf("%s%d updated%s", colorYellow, summary.GlossaryTermsUpdated, colorReset))
+	}
+	if summary.AssetsTermsLinked > 0 {
+		changes = append(changes, fmt.Sprintf("%s%d assets linked%s", colorCyan, summary.AssetsTermsLinked, colorReset))
+	}
+
+	if len(changes) > 0 {
+		fmt.Printf("Glossary: %s\n", strings.Join(changes, ", "))
+	}
+
 	if summary.ErrorsEncountered > 0 {
 		fmt.Printf("Errors: %s%d encountered%s\n", colorRed, summary.ErrorsEncountered, colorReset)
 		fmt.Printf("\n%s⚠️  Some operations completed with errors%s\n", colorYellow, colorReset)
@@ -772,4 +921,3 @@ func printDestroySummary(response *DestroyRunResponse, totalDeleted int, pipelin
 		fmt.Printf("\n%s⚠️  No resources were found to delete%s\n", colorYellow, colorReset)
 	}
 }
-

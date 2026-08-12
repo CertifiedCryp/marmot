@@ -7,11 +7,13 @@ import (
 	"github.com/marmotdata/marmot/pkg/config"
 	"github.com/marmotdata/marmot/internal/core/asset"
 	"github.com/marmotdata/marmot/internal/core/auth"
+	"github.com/marmotdata/marmot/internal/core/dataproduct"
 	"github.com/marmotdata/marmot/internal/core/lineage"
 	"github.com/marmotdata/marmot/internal/core/search"
 	"github.com/marmotdata/marmot/internal/core/team"
 	"github.com/marmotdata/marmot/internal/core/user"
 	"github.com/marmotdata/marmot/internal/mcp"
+	"github.com/marmotdata/marmot/internal/telemetry/lookups"
 )
 
 type Handler struct {
@@ -26,14 +28,16 @@ func NewHandler(
 	glossaryService mcp.GlossaryService,
 	userService user.Service,
 	teamService *team.Service,
+	dataProductService dataproduct.Service,
 	lineageService lineage.Service,
 	searchService search.Service,
 	authService auth.Service,
 	config *config.Config,
+	lookupsRecorder lookups.Recorder,
 ) *Handler {
 	teamAdapter := &teamServiceAdapter{teamService: teamService}
 	return &Handler{
-		mcpServer:   mcp.NewServer(assetService, glossaryService, userService, teamAdapter, lineageService, searchService, config),
+		mcpServer:   mcp.NewServer(assetService, glossaryService, userService, teamAdapter, dataProductService, lineageService, searchService, config, lookupsRecorder),
 		userService: userService,
 		authService: authService,
 		config:      config,
@@ -55,6 +59,7 @@ func (h *Handler) Routes() []common.Route {
 				common.WithAuth(h.userService, h.authService, h.config),
 				common.RequirePermission(h.userService, "assets", "view"),
 				common.RequirePermission(h.userService, "glossary", "view"),
+				common.RequirePermission(h.userService, "teams", "view"),
 			},
 		},
 		{
@@ -65,6 +70,7 @@ func (h *Handler) Routes() []common.Route {
 				common.WithAuth(h.userService, h.authService, h.config),
 				common.RequirePermission(h.userService, "assets", "view"),
 				common.RequirePermission(h.userService, "glossary", "view"),
+				common.RequirePermission(h.userService, "teams", "view"),
 			},
 		},
 	}

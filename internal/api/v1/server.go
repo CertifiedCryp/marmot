@@ -10,43 +10,11 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	_ "github.com/marmotdata/marmot/docs"
 	"github.com/marmotdata/marmot/internal/api/v1/assets"
 	"github.com/marmotdata/marmot/internal/api/v1/health"
 	"github.com/marmotdata/marmot/internal/crypto"
 
-	// Plugin imports
-	_ "github.com/marmotdata/marmot/internal/plugin/providers/airflow"
-	_ "github.com/marmotdata/marmot/internal/plugin/providers/asyncapi"
-	_ "github.com/marmotdata/marmot/internal/plugin/providers/azureblob"
-	_ "github.com/marmotdata/marmot/internal/plugin/providers/bigquery"
-	_ "github.com/marmotdata/marmot/internal/plugin/providers/clickhouse"
-	_ "github.com/marmotdata/marmot/internal/plugin/providers/confluent"
-	_ "github.com/marmotdata/marmot/internal/plugin/providers/dbt"
-	_ "github.com/marmotdata/marmot/internal/plugin/providers/deltalake"
-	_ "github.com/marmotdata/marmot/internal/plugin/providers/duckdb"
-	_ "github.com/marmotdata/marmot/internal/plugin/providers/dynamodb"
-	_ "github.com/marmotdata/marmot/internal/plugin/providers/elasticsearch"
-	_ "github.com/marmotdata/marmot/internal/plugin/providers/gcs"
-	_ "github.com/marmotdata/marmot/internal/plugin/providers/glue"
-	_ "github.com/marmotdata/marmot/internal/plugin/providers/iceberg"
-	_ "github.com/marmotdata/marmot/internal/plugin/providers/kafka"
-	_ "github.com/marmotdata/marmot/internal/plugin/providers/lambda"
-	_ "github.com/marmotdata/marmot/internal/plugin/providers/mongodb"
-	_ "github.com/marmotdata/marmot/internal/plugin/providers/mysql"
-	_ "github.com/marmotdata/marmot/internal/plugin/providers/nats"
-	_ "github.com/marmotdata/marmot/internal/plugin/providers/openapi"
-	_ "github.com/marmotdata/marmot/internal/plugin/providers/opensearch"
-	_ "github.com/marmotdata/marmot/internal/plugin/providers/postgresql"
-	_ "github.com/marmotdata/marmot/internal/plugin/providers/redis"
-	_ "github.com/marmotdata/marmot/internal/plugin/providers/redpanda"
-	_ "github.com/marmotdata/marmot/internal/plugin/providers/s3"
-	_ "github.com/marmotdata/marmot/internal/plugin/providers/sns"
-	_ "github.com/marmotdata/marmot/internal/plugin/providers/sqs"
-	_ "github.com/marmotdata/marmot/internal/plugin/providers/trino"
-
 	"github.com/marmotdata/marmot/internal/api/auth"
-	marmotOAuth2 "github.com/marmotdata/marmot/internal/oauth2"
 	adminAPI "github.com/marmotdata/marmot/internal/api/v1/admin"
 	agentsAPI "github.com/marmotdata/marmot/internal/api/v1/agents"
 	assetrulesAPI "github.com/marmotdata/marmot/internal/api/v1/assetrules"
@@ -59,15 +27,16 @@ import (
 	metricsAPI "github.com/marmotdata/marmot/internal/api/v1/metrics"
 	notificationsAPI "github.com/marmotdata/marmot/internal/api/v1/notifications"
 	"github.com/marmotdata/marmot/internal/api/v1/plugins"
+	rolesAPI "github.com/marmotdata/marmot/internal/api/v1/roles"
 	"github.com/marmotdata/marmot/internal/api/v1/runs"
 	schedulesAPI "github.com/marmotdata/marmot/internal/api/v1/schedules"
 	searchAPI "github.com/marmotdata/marmot/internal/api/v1/search"
+	serviceaccountsAPI "github.com/marmotdata/marmot/internal/api/v1/serviceaccounts"
 	subscriptionsAPI "github.com/marmotdata/marmot/internal/api/v1/subscriptions"
 	"github.com/marmotdata/marmot/internal/api/v1/teams"
 	"github.com/marmotdata/marmot/internal/api/v1/ui"
 	"github.com/marmotdata/marmot/internal/api/v1/users"
 	webhooksAPI "github.com/marmotdata/marmot/internal/api/v1/webhooks"
-	"github.com/marmotdata/marmot/pkg/config"
 	agentService "github.com/marmotdata/marmot/internal/core/agent"
 	"github.com/marmotdata/marmot/internal/core/asset"
 	"github.com/marmotdata/marmot/internal/core/assetdocs"
@@ -79,19 +48,24 @@ import (
 	glossaryService "github.com/marmotdata/marmot/internal/core/glossary"
 	lineageService "github.com/marmotdata/marmot/internal/core/lineage"
 	notificationService "github.com/marmotdata/marmot/internal/core/notification"
+	roleService "github.com/marmotdata/marmot/internal/core/role"
 	runService "github.com/marmotdata/marmot/internal/core/runs"
 	searchService "github.com/marmotdata/marmot/internal/core/search"
+	serviceaccountService "github.com/marmotdata/marmot/internal/core/serviceaccount"
 	"github.com/marmotdata/marmot/internal/core/subscription"
 	teamService "github.com/marmotdata/marmot/internal/core/team"
 	userService "github.com/marmotdata/marmot/internal/core/user"
 	webhookService "github.com/marmotdata/marmot/internal/core/webhook"
 	"github.com/marmotdata/marmot/internal/metrics"
+	marmotOAuth2 "github.com/marmotdata/marmot/internal/oauth2"
 	operatorSync "github.com/marmotdata/marmot/internal/operator/sync"
 	"github.com/marmotdata/marmot/internal/plugin"
+	"github.com/marmotdata/marmot/internal/plugin/install"
 	"github.com/marmotdata/marmot/internal/search/elasticsearch"
+	"github.com/marmotdata/marmot/internal/telemetry/lookups"
 	"github.com/marmotdata/marmot/internal/websocket"
+	"github.com/marmotdata/marmot/pkg/config"
 	"github.com/rs/zerolog/log"
-	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 // @title Marmot API
@@ -130,7 +104,7 @@ type Server struct {
 	handlers []interface{ Routes() []common.Route }
 }
 
-func New(config *config.Config, db *pgxpool.Pool) *Server {
+func New(config *config.Config, db *pgxpool.Pool, lookupsRecorder lookups.Recorder) *Server {
 	metricsStore := metrics.NewPostgresStore(db)
 	metricsService := metrics.NewService(metricsStore, db)
 	metricsService.Start(context.Background())
@@ -148,13 +122,17 @@ func New(config *config.Config, db *pgxpool.Pool) *Server {
 
 	assetSvc := asset.NewService(assetRepo)
 	userSvc := userService.NewService(userRepo)
+	roleStore := roleService.NewPostgresStore(db)
+	roleSvc := roleService.NewService(roleStore)
+	serviceAccountStore := serviceaccountService.NewPostgresRepository(db)
+	serviceAccountSvc := serviceaccountService.NewService(serviceAccountStore, serviceaccountService.DefaultMaxAPIKeysPerAccount)
 	lineageSvc := lineageService.NewService(lineageRepo, assetSvc)
 	agentRepo := agentService.NewPostgresRepository(db)
 	agentSvc := agentService.NewService(agentRepo, assetSvc, lineageSvc)
 	assetDocsSvc := assetdocs.NewService(assetDocsRepo)
 	authSvc := authService.NewService(authRepo, userSvc)
-	runsSvc := runService.NewService(runRepo, assetSvc, lineageSvc, recorder)
 	glossarySvc := glossaryService.NewService(glossaryRepo)
+	runsSvc := runService.NewService(runRepo, assetSvc, lineageSvc, glossarySvc, recorder)
 	teamRepo := teamService.NewPostgresRepository(db)
 	teamSvc := teamService.NewService(teamRepo)
 	searchSvc := searchService.NewService(searchRepo)
@@ -296,6 +274,27 @@ func New(config *config.Config, db *pgxpool.Pool) *Server {
 		}
 	}
 
+	// Download core plugins that this build's manifest pins but the
+	// cache does not hold yet, then register plugins: locally installed
+	// ones first, so they shadow the pinned cached core plugins. Run in
+	// the background so the HTTP server can bind immediately; the
+	// scheduler, plugin-triggering endpoints, and /readyz gate on
+	// pluginLoadState until this finishes.
+	installOpts := install.Options{Registry: config.Plugins.Registry}
+	pluginLoadState := plugin.GetLoadState()
+	go func() {
+		defer pluginLoadState.MarkReady()
+		if config.Plugins.Autoinstall {
+			if err := install.EnsureCore(context.Background(), installOpts); err != nil {
+				log.Warn().Err(err).Msg("Failed to install core plugins; continuing with what is available")
+			}
+		}
+		if err := install.LoadPlugins(installOpts); err != nil {
+			log.Error().Err(err).Msg("Failed to load external plugins")
+		}
+		log.Info().Msg("Plugin loading complete")
+	}()
+
 	pluginRegistry := plugin.GetRegistry()
 
 	schedulerConfig := &runService.SchedulerConfig{
@@ -306,7 +305,10 @@ func New(config *config.Config, db *pgxpool.Pool) *Server {
 		LinkAssets:        config.Experimental.TablePreview,
 		DB:                db,
 	}
-	scheduler := runService.NewScheduler(scheduleSvc, runsSvc, scheduleEncryptor, pluginRegistry, schedulerConfig)
+	if config.Plugins.Autoinstall {
+		schedulerConfig.PluginInstall = &install.Options{Registry: config.Plugins.Registry}
+	}
+	scheduler := runService.NewScheduler(scheduleSvc, runsSvc, scheduleEncryptor, pluginRegistry, pluginLoadState, schedulerConfig)
 
 	if err := scheduler.Start(context.Background()); err != nil {
 		log.Error().Err(err).Msg("Failed to start scheduler")
@@ -419,6 +421,7 @@ func New(config *config.Config, db *pgxpool.Pool) *Server {
 	}
 
 	common.SetOAuthManager(oauthManager)
+	common.SetServiceAccountService(serviceAccountSvc)
 
 	signingKey, signingKeyErr := authSvc.GetSigningKey(context.Background())
 	if signingKeyErr != nil {
@@ -526,15 +529,15 @@ func New(config *config.Config, db *pgxpool.Pool) *Server {
 
 	server.handlers = []interface{ Routes() []common.Route }{
 		health.NewHandler(),
-		assets.NewHandler(assetSvc, assetDocsSvc, userSvc, authSvc, metricsService, runsSvc, scheduleSvc, teamSvc, assetRuleSvc, scheduleEncryptor, config),
+		assets.NewHandler(assetSvc, assetDocsSvc, userSvc, authSvc, metricsService, runsSvc, scheduleSvc, teamSvc, assetRuleSvc, scheduleEncryptor, config, lookupsRecorder),
 		users.NewHandler(userSvc, authSvc, config),
 		authHandler,
-		lineage.NewHandler(lineageSvc, userSvc, authSvc, config),
-		mcpAPI.NewHandler(assetSvc, glossarySvc, userSvc, teamSvc, lineageSvc, finalSearchSvc, authSvc, config),
+		lineage.NewHandler(lineageSvc, userSvc, authSvc, config, lookupsRecorder),
+		mcpAPI.NewHandler(assetSvc, glossarySvc, userSvc, teamSvc, dataProductSvc, lineageSvc, finalSearchSvc, authSvc, config, lookupsRecorder),
 		metricsAPI.NewHandler(metricsService, userSvc, authSvc, config),
 		runs.NewHandler(runsSvc, userSvc, authSvc, scheduleSvc, config),
-		glossary.NewHandler(glossarySvc, userSvc, authSvc, config),
-		dataproducts.NewHandler(dataProductSvc, userSvc, authSvc, config),
+		glossary.NewHandler(glossarySvc, userSvc, authSvc, config, lookupsRecorder),
+		dataproducts.NewHandler(dataProductSvc, userSvc, authSvc, config, lookupsRecorder),
 		assetrulesAPI.NewHandler(assetRuleSvc, userSvc, authSvc, config),
 		docsAPI.NewHandler(docsSvc, userSvc, authSvc, config),
 		notificationsAPI.NewHandler(notificationSvc, userSvc, authSvc, config),
@@ -544,6 +547,8 @@ func New(config *config.Config, db *pgxpool.Pool) *Server {
 		searchAPI.NewHandler(finalSearchSvc, userSvc, authSvc, metricsService, config),
 		schedulesHandler,
 		websocket.NewHandler(wsHub, config),
+		rolesAPI.NewHandler(roleSvc, userSvc, authSvc, config),
+		serviceaccountsAPI.NewHandler(serviceAccountSvc, userSvc, authSvc, config),
 		plugins.NewHandler(),
 		ui.NewHandler(config, encryptionConfigured),
 		adminAPI.NewHandler(reindexer, userSvc, authSvc, config),
@@ -663,6 +668,11 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 					// Wrapping breaks the upgrade process
 					handler(w, r)
 				} else {
+					// Attribute the request to a client channel (cli, sdk-go,
+					// web, mcp, …) for lookup telemetry. Handlers read it back
+					// via lookups.SourceFrom(ctx).
+					r = r.WithContext(lookups.WithSource(r.Context(), lookups.SourceFromRequest(r)))
+
 					// For regular HTTP requests, use the wrapped ResponseWriter for metrics
 					wrapped := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
 					handler(wrapped, r)
@@ -678,9 +688,7 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 		})
 	}
 
-	mux.Handle("/swagger/", httpSwagger.Handler(
-		httpSwagger.URL("/swagger/doc.json"),
-	))
+	registerSwagger(mux)
 }
 
 // teamMembershipAdapter adapts teamService to notification.TeamMembershipProvider

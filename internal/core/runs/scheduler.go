@@ -12,6 +12,7 @@ import (
 	"github.com/marmotdata/marmot/internal/core/asset"
 	"github.com/marmotdata/marmot/internal/crypto"
 	"github.com/marmotdata/marmot/internal/plugin"
+	"github.com/marmotdata/marmot/internal/plugin/install"
 	"github.com/rs/zerolog/log"
 )
 
@@ -23,12 +24,14 @@ const (
 )
 
 type Scheduler struct {
-	service     *ScheduleService
-	runsService Service
-	encryptor   *crypto.Encryptor
-	registry    *plugin.Registry
-	db          *pgxpool.Pool
-	linkAssets  bool
+	service       *ScheduleService
+	runsService   Service
+	encryptor     *crypto.Encryptor
+	registry      *plugin.Registry
+	loadState     *plugin.LoadState
+	db            *pgxpool.Pool
+	linkAssets    bool
+	pluginInstall *install.Options
 
 	maxWorkers        int
 	schedulerInterval time.Duration
@@ -51,13 +54,19 @@ type SchedulerConfig struct {
 	SchedulerInterval time.Duration
 	LeaseExpiry       time.Duration
 	ClaimExpiry       time.Duration
-	LinkAssets         bool
+	LinkAssets        bool
 	DB                *pgxpool.Pool
+	// PluginInstall configures installing a core plugin on demand when
+	// a job needs one that is not loaded. Nil disables it.
+	PluginInstall *install.Options
 }
 
-func NewScheduler(service *ScheduleService, runsService Service, encryptor *crypto.Encryptor, registry *plugin.Registry, config *SchedulerConfig) *Scheduler {
+func NewScheduler(service *ScheduleService, runsService Service, encryptor *crypto.Encryptor, registry *plugin.Registry, loadState *plugin.LoadState, config *SchedulerConfig) *Scheduler {
 	if config == nil {
 		config = &SchedulerConfig{}
+	}
+	if loadState == nil {
+		loadState = plugin.GetLoadState()
 	}
 
 	maxWorkers := config.MaxWorkers
@@ -85,8 +94,10 @@ func NewScheduler(service *ScheduleService, runsService Service, encryptor *cryp
 		runsService:       runsService,
 		encryptor:         encryptor,
 		registry:          registry,
+		loadState:         loadState,
 		db:                config.DB,
 		linkAssets:        config.LinkAssets,
+		pluginInstall:     config.PluginInstall,
 		maxWorkers:        maxWorkers,
 		schedulerInterval: schedulerInterval,
 		leaseExpiry:       leaseExpiry,
@@ -98,6 +109,19 @@ func NewScheduler(service *ScheduleService, runsService Service, encryptor *cryp
 
 func (s *Scheduler) Start(ctx context.Context) error {
 	s.ctx, s.cancel = context.WithCancel(ctx)
+
+	if !s.loadState.Ready() {
+		log.Info().Msg("Scheduler waiting for plugin loading to complete before dispatching jobs")
+		s.wg.Add(1)
+		go func() {
+			defer s.wg.Done()
+			select {
+			case <-s.loadState.Done():
+				log.Info().Msg("Scheduler received plugin-ready signal; dispatching enabled")
+			case <-s.ctx.Done():
+			}
+		}()
+	}
 
 	s.wg.Add(1)
 	go func() {
@@ -176,7 +200,7 @@ func (s *Scheduler) jobDispatcher() {
 					s.activeWorkers.Add(-1)
 				}()
 
-				worker := newWorker(s.service, s.runsService, s.encryptor, s.registry, s.linkAssets)
+				worker := newWorker(s.service, s.runsService, s.encryptor, s.registry, s.linkAssets, s.pluginInstall)
 				if err := worker.executeJob(s.ctx, j); err != nil {
 					log.Error().
 						Err(err).
@@ -189,6 +213,9 @@ func (s *Scheduler) jobDispatcher() {
 }
 
 func (s *Scheduler) processSchedules(ctx context.Context) error {
+	if !s.loadState.Ready() {
+		return nil
+	}
 
 	schedules, err := s.service.GetSchedulesDueForRun(ctx, 100)
 	if err != nil {
@@ -247,6 +274,10 @@ func (s *Scheduler) pendingJobsPoller() {
 }
 
 func (s *Scheduler) checkPendingJobs() {
+	if !s.loadState.Ready() {
+		return
+	}
+
 	ctx := context.Background()
 	status := JobStatusPending
 
@@ -286,21 +317,38 @@ func (s *Scheduler) leaseCleanupLoop() {
 }
 
 type worker struct {
-	service     *ScheduleService
-	runsService Service
-	encryptor   *crypto.Encryptor
-	registry    *plugin.Registry
-	linkAssets  bool
+	service       *ScheduleService
+	runsService   Service
+	encryptor     *crypto.Encryptor
+	registry      *plugin.Registry
+	linkAssets    bool
+	pluginInstall *install.Options
 }
 
-func newWorker(service *ScheduleService, runsService Service, encryptor *crypto.Encryptor, registry *plugin.Registry, linkAssets bool) *worker {
+func newWorker(service *ScheduleService, runsService Service, encryptor *crypto.Encryptor, registry *plugin.Registry, linkAssets bool, pluginInstall *install.Options) *worker {
 	return &worker{
-		service:     service,
-		runsService: runsService,
-		encryptor:   encryptor,
-		registry:    registry,
-		linkAssets:  linkAssets,
+		service:       service,
+		runsService:   runsService,
+		encryptor:     encryptor,
+		registry:      registry,
+		linkAssets:    linkAssets,
+		pluginInstall: pluginInstall,
 	}
+}
+
+// installMissingPlugin recovers a job whose plugin is not in the
+// registry, e.g. because installing core plugins failed at server
+// startup: it installs the plugin, loads plugin binaries from disk,
+// and retries the lookup.
+func (w *worker) installMissingPlugin(ctx context.Context, id string) (plugin.Source, error) {
+	log.Info().Str("plugin", id).Msg("Plugin not loaded, installing")
+
+	path, err := install.EnsurePlugin(ctx, *w.pluginInstall, id)
+	if err != nil {
+		return nil, err
+	}
+	plugin.LoadBinary(path)
+	return w.registry.GetSource(id)
 }
 
 func (w *worker) executeJob(ctx context.Context, run *JobRun) error {
@@ -331,6 +379,9 @@ func (w *worker) executeJob(ctx context.Context, run *JobRun) error {
 	}
 
 	source, err := w.registry.GetSource(schedule.PluginID)
+	if err != nil && w.pluginInstall != nil {
+		source, err = w.installMissingPlugin(ctx, schedule.PluginID)
+	}
 	if err != nil {
 		errorMsg := fmt.Sprintf("Failed to get plugin source: %v", err)
 		_ = w.service.CompleteJobRun(ctx, run.ID, false, &errorMsg, 0, 0, 0, 0, 0)
@@ -378,9 +429,14 @@ func (w *worker) executeJob(ctx context.Context, run *JobRun) error {
 			schema[k] = v
 		}
 
-		sources := make([]string, len(a.Sources))
+		sources := make([]asset.AssetSource, len(a.Sources))
 		for j, source := range a.Sources {
-			sources[j] = source.Name
+			sources[j] = asset.AssetSource{
+				Name:       source.Name,
+				LastSyncAt: source.LastSyncAt,
+				Properties: source.Properties,
+				Priority:   source.Priority,
+			}
 		}
 
 		assetsInput = append(assetsInput, CreateAssetInput{
@@ -396,6 +452,7 @@ func (w *worker) executeJob(ctx context.Context, run *JobRun) error {
 			ExternalLinks: convertAssetExternalLinks(a.ExternalLinks),
 			Query:         a.Query,
 			QueryLanguage: a.QueryLanguage,
+			Terms:         a.Terms,
 		})
 	}
 
@@ -426,6 +483,19 @@ func (w *worker) executeJob(ctx context.Context, run *JobRun) error {
 		})
 	}
 
+	termsInput := make([]GlossaryTermInput, 0, len(result.GlossaryTerms))
+	for _, t := range result.GlossaryTerms {
+		termsInput = append(termsInput, GlossaryTermInput{
+			Name:        t.Name,
+			Definition:  t.Definition,
+			Description: t.Description,
+			Parent:      t.Parent,
+			Synonyms:    t.Synonyms,
+			Tags:        t.Tags,
+			Metadata:    t.Metadata,
+		})
+	}
+
 	response, err := w.runsService.ProcessEntities(
 		ctx,
 		pluginRun.RunID,
@@ -433,6 +503,7 @@ func (w *worker) executeJob(ctx context.Context, run *JobRun) error {
 		lineageInput,
 		docsInput,
 		statsInput,
+		termsInput,
 		schedule.Name,
 		schedule.PluginID,
 	)
@@ -504,6 +575,11 @@ func (w *worker) executeJob(ctx context.Context, run *JobRun) error {
 		LineageCreated:     lineageCreated,
 		DocumentationAdded: docsAdded,
 		TotalEntities:      len(result.Assets) + len(result.Lineage) + len(result.Documentation),
+	}
+	if response.Glossary != nil {
+		summary.GlossaryTermsCreated = response.Glossary.TermsCreated
+		summary.GlossaryTermsUpdated = response.Glossary.TermsUpdated
+		summary.AssetsTermsLinked = response.Glossary.AssetsLinked
 	}
 	_ = w.runsService.CompleteRun(ctx, pluginRun.RunID, plugin.StatusCompleted, summary, "")
 

@@ -22,6 +22,8 @@ from marmot.resources.search import SearchResource
 from marmot.resources.teams import TeamsResource
 from marmot.resources.users import UsersResource
 
+_USER_AGENT = "marmot-sdk-py"
+
 
 class Client:
     """Marmot client.
@@ -44,6 +46,7 @@ class Client:
         self._owns_http = http_client is None
         self._http.auth = make_marmot_auth(credential)
         self._http.base_url = httpx.URL(f"{self._base_url}/api/v1")
+        self._http.headers.setdefault("User-Agent", _USER_AGENT)
         self._gen = make_gen_client(self._base_url, self._http)
         self.admin = AdminResource(self._gen)
         self.agent_runs = AgentRunsResource(self._gen)

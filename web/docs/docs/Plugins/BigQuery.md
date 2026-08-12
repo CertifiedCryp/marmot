@@ -21,14 +21,14 @@ import { CalloutCard } from '@site/src/components/DocCard';
 <CalloutCard
   title="Configure in the UI"
   description="This plugin can be configured directly in the Marmot UI with a step-by-step wizard."
-  docId="Populating/UI"
+  href="/docs/Populating/UI"
   buttonText="View Guide"
   variant="secondary"
   icon="mdi:cursor-default-click"
 />
 
 
-The BigQuery plugin discovers datasets, tables, and views from Google BigQuery projects. It captures schemas, statistics, and lineage relationships.
+The BigQuery plugin discovers datasets, tables, views, and external tables from Google BigQuery projects. It captures schemas, statistics, and lineage relationships.
 
 ## Required Permissions
 

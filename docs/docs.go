@@ -293,542 +293,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/ingestion/runs": {
-            "get": {
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "ingestion"
-                ],
-                "summary": "List ingestion job runs",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Filter by schedule ID",
-                        "name": "schedule_id",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Filter by status",
-                        "name": "status",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Limit",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Offset",
-                        "name": "offset",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/ListJobRunsResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/ingestion/runs/{id}": {
-            "get": {
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "ingestion"
-                ],
-                "summary": "Get a job run by ID",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Job run ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/JobRun"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/ingestion/runs/{id}/cancel": {
-            "post": {
-                "tags": [
-                    "ingestion"
-                ],
-                "summary": "Cancel a running job",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Job run ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "No Content"
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/ingestion/runs/{id}/entities": {
-            "get": {
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "ingestion"
-                ],
-                "summary": "Get entities for a job run",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Job run ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Limit",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Offset",
-                        "name": "offset",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/ingestion/schedules": {
-            "get": {
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "ingestion"
-                ],
-                "summary": "List ingestion schedules",
-                "parameters": [
-                    {
-                        "type": "boolean",
-                        "description": "Filter by enabled status",
-                        "name": "enabled",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Limit",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Offset",
-                        "name": "offset",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/ListSchedulesResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "ingestion"
-                ],
-                "summary": "Create a new ingestion schedule",
-                "parameters": [
-                    {
-                        "description": "Schedule configuration",
-                        "name": "schedule",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/CreateScheduleRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/Schedule"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/ingestion/schedules/{id}": {
-            "get": {
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "ingestion"
-                ],
-                "summary": "Get an ingestion schedule by ID",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Schedule ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/Schedule"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "ingestion"
-                ],
-                "summary": "Update an ingestion schedule",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Schedule ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Updated schedule configuration",
-                        "name": "schedule",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/UpdateScheduleRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/Schedule"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "tags": [
-                    "ingestion"
-                ],
-                "summary": "Delete an ingestion schedule",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Schedule ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "No Content"
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/ingestion/schedules/{id}/trigger": {
-            "post": {
-                "tags": [
-                    "ingestion"
-                ],
-                "summary": "Manually trigger an ingestion schedule",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Schedule ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/JobRun"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/ingestion/validate": {
-            "post": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "ingestion"
-                ],
-                "summary": "Validate plugin configuration",
-                "parameters": [
-                    {
-                        "description": "Config to validate",
-                        "name": "config",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/ValidateConfigRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/ValidateConfigResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/api/v1/lineage": {
             "post": {
                 "description": "Process OpenLineage run events and update assets/lineage accordingly",
@@ -867,6 +331,25 @@ const docTemplate = `{
                         "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/plugins": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "plugins"
+                ],
+                "summary": "List registered plugins",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/ListPluginsResponse"
                         }
                     }
                 }
@@ -3004,6 +2487,542 @@ const docTemplate = `{
                 }
             }
         },
+        "/ingestion/runs": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ingestion"
+                ],
+                "summary": "List ingestion job runs",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by schedule ID",
+                        "name": "schedule_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Offset",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/ListJobRunsResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/ingestion/runs/{id}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ingestion"
+                ],
+                "summary": "Get a job run by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Job run ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/JobRun"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/ingestion/runs/{id}/cancel": {
+            "post": {
+                "tags": [
+                    "ingestion"
+                ],
+                "summary": "Cancel a running job",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Job run ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/ingestion/runs/{id}/entities": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ingestion"
+                ],
+                "summary": "Get entities for a job run",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Job run ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Offset",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/ingestion/schedules": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ingestion"
+                ],
+                "summary": "List ingestion schedules",
+                "parameters": [
+                    {
+                        "type": "boolean",
+                        "description": "Filter by enabled status",
+                        "name": "enabled",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Offset",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/ListSchedulesResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ingestion"
+                ],
+                "summary": "Create a new ingestion schedule",
+                "parameters": [
+                    {
+                        "description": "Schedule configuration",
+                        "name": "schedule",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/CreateScheduleRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/Schedule"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/ingestion/schedules/{id}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ingestion"
+                ],
+                "summary": "Get an ingestion schedule by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Schedule ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/Schedule"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ingestion"
+                ],
+                "summary": "Update an ingestion schedule",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Schedule ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Updated schedule configuration",
+                        "name": "schedule",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/UpdateScheduleRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/Schedule"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "ingestion"
+                ],
+                "summary": "Delete an ingestion schedule",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Schedule ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/ingestion/schedules/{id}/trigger": {
+            "post": {
+                "tags": [
+                    "ingestion"
+                ],
+                "summary": "Manually trigger an ingestion schedule",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Schedule ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/JobRun"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/ingestion/validate": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ingestion"
+                ],
+                "summary": "Validate plugin configuration",
+                "parameters": [
+                    {
+                        "description": "Config to validate",
+                        "name": "config",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/ValidateConfigRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/ValidateConfigResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/lineage/assets/{id}": {
             "get": {
                 "description": "Get upstream and downstream lineage for a specific asset",
@@ -3043,6 +3062,12 @@ const docTemplate = `{
                         "default": "both",
                         "description": "Direction of lineage (upstream, downstream, or both)",
                         "name": "direction",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Comma separated edge types to leave out, for example CONTAINS to see data flow without structure",
+                        "name": "exclude_types",
                         "in": "query"
                     }
                 ],
@@ -3642,6 +3667,35 @@ const docTemplate = `{
                 }
             }
         },
+        "/permissions": {
+            "get": {
+                "description": "List all defined permissions grouped by resource type",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "roles"
+                ],
+                "summary": "List all permissions",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/RolePermission"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/pipelines/{pipelineName}": {
             "delete": {
                 "description": "Delete all resources ever created by a pipeline (across all sources)",
@@ -3666,6 +3720,248 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/DestroyRunResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/products/": {
+            "post": {
+                "description": "Create a new data product with owners and optional membership rules",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "products"
+                ],
+                "summary": "Create data product",
+                "parameters": [
+                    {
+                        "description": "Data product to create",
+                        "name": "product",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/CreateDataProductRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/DataProduct"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/products/assets/{id}": {
+            "get": {
+                "description": "Get the manually added assets of a data product",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "products"
+                ],
+                "summary": "Get data product assets",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Data Product ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Maximum number of assets to return",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Number of assets to skip",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/DataProductAssetsResult"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Manually add assets to a data product",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "products"
+                ],
+                "summary": "Add data product assets",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Data Product ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Asset IDs to add",
+                        "name": "assets",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/AddDataProductAssetsRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/products/assets/{id}/{assetId}": {
+            "delete": {
+                "description": "Remove a manually added asset from a data product",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "products"
+                ],
+                "summary": "Remove data product asset",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Data Product ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Asset ID",
+                        "name": "assetId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
                         }
                     }
                 }
@@ -3868,6 +4164,865 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/products/list": {
+            "get": {
+                "description": "Retrieve a paginated list of data products",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "products"
+                ],
+                "summary": "List data products",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Maximum number of data products to return",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Number of data products to skip",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/DataProductListResult"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/products/resolved-assets/{id}": {
+            "get": {
+                "description": "Get all assets of a data product, both manually added and matched by rules",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "products"
+                ],
+                "summary": "Get resolved data product assets",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Data Product ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Maximum number of assets to return",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Number of assets to skip",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/DataProductResolvedAssets"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/products/rule-preview": {
+            "post": {
+                "description": "Preview which assets would match a rule configuration",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "products"
+                ],
+                "summary": "Preview data product rule",
+                "parameters": [
+                    {
+                        "description": "Rule to preview",
+                        "name": "rule",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/DataProductRuleRequest"
+                        }
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Maximum number of matching assets to return",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/DataProductRulePreview"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/products/rules/{id}": {
+            "get": {
+                "description": "Get the membership rules of a data product",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "products"
+                ],
+                "summary": "Get data product rules",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Data Product ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/DataProductRulesResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Create a membership rule for a data product",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "products"
+                ],
+                "summary": "Create data product rule",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Data Product ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Rule to create",
+                        "name": "rule",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/DataProductRuleRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/DataProductRule"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/products/rules/{id}/{ruleId}": {
+            "put": {
+                "description": "Update a membership rule of a data product",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "products"
+                ],
+                "summary": "Update data product rule",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Data Product ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Rule ID",
+                        "name": "ruleId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Rule fields to update",
+                        "name": "rule",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/DataProductRuleRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/DataProductRule"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete a membership rule from a data product",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "products"
+                ],
+                "summary": "Delete data product rule",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Data Product ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Rule ID",
+                        "name": "ruleId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/products/search": {
+            "get": {
+                "description": "Search data products by name, description, and tags",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "products"
+                ],
+                "summary": "Search data products",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search query",
+                        "name": "q",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Comma-separated list of tags to filter by",
+                        "name": "tags",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Maximum number of data products to return",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Number of data products to skip",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/DataProductListResult"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/products/{id}": {
+            "get": {
+                "description": "Get a data product by ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "products"
+                ],
+                "summary": "Get data product",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Data Product ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/DataProduct"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Update an existing data product",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "products"
+                ],
+                "summary": "Update data product",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Data Product ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Fields to update",
+                        "name": "product",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/UpdateDataProductRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/DataProduct"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete a data product by ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "products"
+                ],
+                "summary": "Delete data product",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Data Product ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/roles": {
+            "get": {
+                "description": "List all active roles with user counts and permissions",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "roles"
+                ],
+                "summary": "List roles",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/Role"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Create a new role with optional initial permissions",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "roles"
+                ],
+                "summary": "Create a role",
+                "parameters": [
+                    {
+                        "description": "Role creation request",
+                        "name": "role",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/v1_roles.createRoleRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/Role"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/roles/{id}": {
+            "get": {
+                "description": "Get a role by ID with its permissions",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "roles"
+                ],
+                "summary": "Get a role",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Role ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/Role"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Soft-delete a role. Fails if the role is a system role or has active user assignments.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "roles"
+                ],
+                "summary": "Delete a role",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Role ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "description": "Update a role's name or description. System roles cannot be renamed.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "roles"
+                ],
+                "summary": "Update a role",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Role ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Role update request",
+                        "name": "role",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/v1_roles.updateRoleRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/Role"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/roles/{id}/permissions": {
+            "post": {
+                "description": "Atomically replace all permissions on a role. System roles enforce a minimum permission floor.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "roles"
+                ],
+                "summary": "Replace role permissions",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Role ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Permission IDs to assign",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/v1_roles.replacePermissionsRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/Role"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
                         "schema": {
                             "$ref": "#/definitions/ErrorResponse"
                         }
@@ -4215,6 +5370,313 @@ const docTemplate = `{
                         "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/service-accounts": {
+            "get": {
+                "description": "Get all service accounts",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "service_accounts"
+                ],
+                "summary": "List service accounts",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/ServiceAccount"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Create a new service account",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "service_accounts"
+                ],
+                "summary": "Create service account",
+                "parameters": [
+                    {
+                        "description": "Service account",
+                        "name": "account",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/CreateServiceAccountRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/ServiceAccount"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/service-accounts/{id}": {
+            "get": {
+                "description": "Get a service account by ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "service_accounts"
+                ],
+                "summary": "Get service account",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Service account ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/ServiceAccount"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Soft-delete a service account",
+                "tags": [
+                    "service_accounts"
+                ],
+                "summary": "Delete service account",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Service account ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "description": "Update a service account",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "service_accounts"
+                ],
+                "summary": "Update service account",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Service account ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Update fields",
+                        "name": "account",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/UpdateServiceAccountRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/ServiceAccount"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/service-accounts/{id}/api-keys": {
+            "get": {
+                "description": "Get all API keys for a service account",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "service_accounts"
+                ],
+                "summary": "List API keys for a service account",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Service account ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/ServiceAccountAPIKey"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Create a new API key. The plaintext key is only returned once.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "service_accounts"
+                ],
+                "summary": "Create API key for a service account",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Service account ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "API key details",
+                        "name": "key",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/CreateServiceAccountAPIKeyRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/ServiceAccountAPIKey"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/service-accounts/{id}/api-keys/{keyId}": {
+            "delete": {
+                "description": "Delete an API key for a service account",
+                "tags": [
+                    "service_accounts"
+                ],
+                "summary": "Delete an API key",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Service account ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "API key ID",
+                        "name": "keyId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/sso-providers": {
+            "get": {
+                "description": "Read-only view of SSO providers wired via server config. Editing is done in config.yaml.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "List configured SSO providers (admin)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/SSOProvidersResponse"
                         }
                     }
                 }
@@ -5644,6 +7106,21 @@ const docTemplate = `{
                 }
             }
         },
+        "AddDataProductAssetsRequest": {
+            "type": "object",
+            "required": [
+                "asset_ids"
+            ],
+            "properties": {
+                "asset_ids": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
         "AddMemberRequest": {
             "type": "object",
             "properties": {
@@ -5820,6 +7297,13 @@ const docTemplate = `{
                     }
                 },
                 "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "terms": {
+                    "description": "Terms carries glossary term names a discovery assigned to this\nasset. It is input only: the links live in asset_terms, so reading\nan asset back from the database never fills this in.",
                     "type": "array",
                     "items": {
                         "type": "string"
@@ -6218,6 +7702,12 @@ const docTemplate = `{
                         "$ref": "#/definitions/CreateDocRequest"
                     }
                 },
+                "glossary_terms": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/CreateGlossaryTermRequest"
+                    }
+                },
                 "lineage": {
                     "type": "array",
                     "items": {
@@ -6226,6 +7716,12 @@ const docTemplate = `{
                 },
                 "pipeline_name": {
                     "type": "string"
+                },
+                "run_history": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/CreateRunHistoryRequest"
+                    }
                 },
                 "run_id": {
                     "type": "string"
@@ -6474,6 +7970,42 @@ const docTemplate = `{
                 }
             }
         },
+        "CreateDataProductRequest": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "metadata": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "name": {
+                    "type": "string"
+                },
+                "owners": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/DataProductOwnerRequest"
+                    }
+                },
+                "rules": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/DataProductRuleRequest"
+                    }
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
         "CreateDocRequest": {
             "type": "object",
             "properties": {
@@ -6488,9 +8020,45 @@ const docTemplate = `{
                 }
             }
         },
+        "CreateGlossaryTermRequest": {
+            "type": "object",
+            "properties": {
+                "definition": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "metadata": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "name": {
+                    "type": "string"
+                },
+                "parent": {
+                    "type": "string"
+                },
+                "synonyms": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
         "CreateLineageRequest": {
             "type": "object",
             "properties": {
+                "job_mrn": {
+                    "type": "string"
+                },
                 "source": {
                     "type": "string"
                 },
@@ -6498,6 +8066,37 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "CreateRunHistoryRequest": {
+            "type": "object",
+            "properties": {
+                "asset_mrn": {
+                    "type": "string"
+                },
+                "event_time": {
+                    "type": "string"
+                },
+                "event_type": {
+                    "type": "string"
+                },
+                "job_facets": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "job_name": {
+                    "type": "string"
+                },
+                "job_namespace": {
+                    "type": "string"
+                },
+                "run_facets": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "run_id": {
                     "type": "string"
                 }
             }
@@ -6537,6 +8136,34 @@ const docTemplate = `{
                 },
                 "plugin_id": {
                     "type": "string"
+                }
+            }
+        },
+        "CreateServiceAccountAPIKeyRequest": {
+            "type": "object",
+            "properties": {
+                "expires_in_days": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "CreateServiceAccountRequest": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "role_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         },
@@ -6640,6 +8267,287 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 255,
                     "minLength": 3
+                }
+            }
+        },
+        "DataProduct": {
+            "type": "object",
+            "properties": {
+                "asset_count": {
+                    "type": "integer"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "created_by": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "icon_url": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "manual_asset_count": {
+                    "type": "integer"
+                },
+                "metadata": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "name": {
+                    "type": "string"
+                },
+                "owners": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/DataProductOwner"
+                    }
+                },
+                "rule_asset_count": {
+                    "type": "integer"
+                },
+                "rules": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/DataProductRule"
+                    }
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "DataProductAssetsResult": {
+            "type": "object",
+            "properties": {
+                "asset_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "DataProductListResult": {
+            "type": "object",
+            "properties": {
+                "data_products": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/DataProduct"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "DataProductOwner": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "profile_picture": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "DataProductOwnerRequest": {
+            "type": "object",
+            "required": [
+                "id",
+                "type"
+            ],
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "user",
+                        "team"
+                    ]
+                }
+            }
+        },
+        "DataProductResolvedAssets": {
+            "type": "object",
+            "properties": {
+                "all_assets": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "dynamic_assets": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "manual_assets": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "DataProductRule": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "data_product_id": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_enabled": {
+                    "type": "boolean"
+                },
+                "matched_asset_count": {
+                    "type": "integer"
+                },
+                "metadata_field": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "pattern_type": {
+                    "type": "string"
+                },
+                "pattern_value": {
+                    "type": "string"
+                },
+                "priority": {
+                    "type": "integer"
+                },
+                "query_expression": {
+                    "type": "string"
+                },
+                "rule_type": {
+                    "$ref": "#/definitions/DataProductRuleType"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "DataProductRulePreview": {
+            "type": "object",
+            "properties": {
+                "asset_count": {
+                    "type": "integer"
+                },
+                "asset_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "errors": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "DataProductRuleRequest": {
+            "type": "object",
+            "required": [
+                "name",
+                "rule_type"
+            ],
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "is_enabled": {
+                    "type": "boolean"
+                },
+                "metadata_field": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "pattern_type": {
+                    "type": "string"
+                },
+                "pattern_value": {
+                    "type": "string"
+                },
+                "priority": {
+                    "type": "integer"
+                },
+                "query_expression": {
+                    "type": "string"
+                },
+                "rule_type": {
+                    "type": "string"
+                }
+            }
+        },
+        "DataProductRuleType": {
+            "type": "string",
+            "enum": [
+                "query",
+                "metadata_match"
+            ],
+            "x-enum-varnames": [
+                "RuleTypeQuery",
+                "RuleTypeMetadataMatch"
+            ]
+        },
+        "DataProductRulesResponse": {
+            "type": "object",
+            "properties": {
+                "rules": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/DataProductRule"
+                    }
+                },
+                "total": {
+                    "type": "integer"
                 }
             }
         },
@@ -6903,6 +8811,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "definition": {
+                    "description": "Definition is what the last run wrote. On a term a person has\nworded themselves the read path serves UserDefinition here instead,\nso a caller always gets the wording the catalog stands behind.",
                     "type": "string"
                 },
                 "deleted_at": {
@@ -6937,6 +8846,10 @@ const docTemplate = `{
                     }
                 },
                 "updated_at": {
+                    "type": "string"
+                },
+                "user_definition": {
+                    "description": "UserDefinition is the wording a person gave the term. Ingestion\nreads it and never writes it, so it survives every run.",
                     "type": "string"
                 }
             }
@@ -7201,6 +9114,20 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/TeamMemberWithUser"
+                    }
+                }
+            }
+        },
+        "ListPluginsResponse": {
+            "type": "object",
+            "properties": {
+                "loading": {
+                    "type": "boolean"
+                },
+                "plugins": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/pluginsdk.Meta"
                     }
                 }
             }
@@ -7687,6 +9614,26 @@ const docTemplate = `{
                 }
             }
         },
+        "RolePermission": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "resource_type": {
+                    "type": "string"
+                }
+            }
+        },
         "RulePreview": {
             "type": "object",
             "properties": {
@@ -7737,6 +9684,10 @@ const docTemplate = `{
                     "type": "object",
                     "additionalProperties": true
                 },
+                "mrn": {
+                    "description": "MRN is the identity the plugin assigned. Empty means the server\nderives one from the type, first provider and name.",
+                    "type": "string"
+                },
                 "name": {
                     "type": "string"
                 },
@@ -7753,10 +9704,17 @@ const docTemplate = `{
                 "sources": {
                     "type": "array",
                     "items": {
-                        "type": "string"
+                        "$ref": "#/definitions/AssetSource"
                     }
                 },
                 "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "terms": {
+                    "description": "Terms are the names of glossary terms assigned to this asset.",
                     "type": "array",
                     "items": {
                         "type": "string"
@@ -7930,6 +9888,9 @@ const docTemplate = `{
                 "assets_deleted": {
                     "type": "integer"
                 },
+                "assets_terms_linked": {
+                    "type": "integer"
+                },
                 "assets_updated": {
                     "type": "integer"
                 },
@@ -7940,6 +9901,13 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "errors_count": {
+                    "type": "integer"
+                },
+                "glossary_terms_created": {
+                    "description": "Glossary counts are absent from runs that predate them, and from\nsources that curate no business terms.",
+                    "type": "integer"
+                },
+                "glossary_terms_updated": {
                     "type": "integer"
                 },
                 "lineage_created": {
@@ -7964,6 +9932,31 @@ const docTemplate = `{
                 },
                 "total": {
                     "type": "integer"
+                }
+            }
+        },
+        "SSOProvider": {
+            "type": "object",
+            "properties": {
+                "issuer_url": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "SSOProvidersResponse": {
+            "type": "object",
+            "properties": {
+                "providers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/SSOProvider"
+                    }
                 }
             }
         },
@@ -8069,6 +10062,64 @@ const docTemplate = `{
                 },
                 "total": {
                     "type": "integer"
+                }
+            }
+        },
+        "ServiceAccount": {
+            "type": "object",
+            "properties": {
+                "active": {
+                    "type": "boolean"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "created_by": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "roles": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Role"
+                    }
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "ServiceAccountAPIKey": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "expires_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "key": {
+                    "type": "string"
+                },
+                "last_used_at": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "service_account_id": {
+                    "type": "string"
                 }
             }
         },
@@ -8427,6 +10478,33 @@ const docTemplate = `{
                 }
             }
         },
+        "UpdateDataProductRequest": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "metadata": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "name": {
+                    "type": "string"
+                },
+                "owners": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/DataProductOwnerRequest"
+                    }
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
         "UpdateMemberRoleRequest": {
             "type": "object",
             "properties": {
@@ -8476,6 +10554,26 @@ const docTemplate = `{
                 },
                 "plugin_id": {
                     "type": "string"
+                }
+            }
+        },
+        "UpdateServiceAccountRequest": {
+            "type": "object",
+            "properties": {
+                "active": {
+                    "type": "boolean"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "role_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         },
@@ -8667,6 +10765,197 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "pluginsdk.ConfigField": {
+            "type": "object",
+            "properties": {
+                "default": {},
+                "description": {
+                    "type": "string"
+                },
+                "fields": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/pluginsdk.ConfigField"
+                    }
+                },
+                "hidden": {
+                    "type": "boolean"
+                },
+                "is_array": {
+                    "type": "boolean"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "options": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/pluginsdk.FieldOption"
+                    }
+                },
+                "placeholder": {
+                    "type": "string"
+                },
+                "required": {
+                    "type": "boolean"
+                },
+                "sensitive": {
+                    "type": "boolean"
+                },
+                "show_when": {
+                    "$ref": "#/definitions/pluginsdk.ShowWhen"
+                },
+                "type": {
+                    "$ref": "#/definitions/pluginsdk.FieldType"
+                },
+                "validation": {
+                    "$ref": "#/definitions/pluginsdk.Validation"
+                }
+            }
+        },
+        "pluginsdk.FieldOption": {
+            "type": "object",
+            "properties": {
+                "label": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "string"
+                }
+            }
+        },
+        "pluginsdk.FieldType": {
+            "type": "string",
+            "enum": [
+                "string",
+                "int",
+                "bool",
+                "select",
+                "multiselect",
+                "password",
+                "object"
+            ],
+            "x-enum-varnames": [
+                "FieldTypeString",
+                "FieldTypeInt",
+                "FieldTypeBool",
+                "FieldTypeSelect",
+                "FieldTypeMultiselect",
+                "FieldTypePassword",
+                "FieldTypeObject"
+            ]
+        },
+        "pluginsdk.Meta": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "type": "string"
+                },
+                "config_spec": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/pluginsdk.ConfigField"
+                    }
+                },
+                "description": {
+                    "type": "string"
+                },
+                "features": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "icon": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "supports_data_preview": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "pluginsdk.ShowWhen": {
+            "type": "object",
+            "properties": {
+                "field": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "string"
+                }
+            }
+        },
+        "pluginsdk.Validation": {
+            "type": "object",
+            "properties": {
+                "max": {
+                    "type": "integer"
+                },
+                "max_len": {
+                    "type": "integer"
+                },
+                "min": {
+                    "type": "integer"
+                },
+                "min_len": {
+                    "type": "integer"
+                },
+                "pattern": {
+                    "type": "string"
+                }
+            }
+        },
+        "v1_roles.createRoleRequest": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "permission_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "v1_roles.replacePermissionsRequest": {
+            "type": "object",
+            "properties": {
+                "permission_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "v1_roles.updateRoleRequest": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "name": {
                     "type": "string"
                 }
             }

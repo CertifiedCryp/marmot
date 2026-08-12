@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { get } from 'svelte/store';
@@ -46,6 +46,8 @@
 
 	let plugins = $state<Plugin[]>([]);
 	let loadingPlugins = $state(true);
+	let pluginsStillLoading = $state(false);
+	let pluginPollTimer: ReturnType<typeof setTimeout> | null = null;
 	let selectedPluginId = $state('');
 	let name = $state('');
 	let cronExpression = $state('');
@@ -160,12 +162,20 @@
 			const response = await fetchApi('/plugins');
 			if (!response.ok) throw new Error('Failed to fetch plugins');
 			const data = await response.json();
-			plugins = Array.isArray(data) ? data : [];
+			plugins = Array.isArray(data?.plugins) ? data.plugins : [];
+			pluginsStillLoading = Boolean(data?.loading);
 		} catch (err) {
 			console.error('Error fetching plugins:', err);
 			error = 'Failed to load plugins';
 		} finally {
 			loadingPlugins = false;
+			if (pluginPollTimer) {
+				clearTimeout(pluginPollTimer);
+				pluginPollTimer = null;
+			}
+			if (pluginsStillLoading) {
+				pluginPollTimer = setTimeout(fetchPlugins, 2000);
+			}
 		}
 	}
 
@@ -452,8 +462,11 @@
 			return expandedSections[sectionName];
 		}
 
-		// Default collapsed for asset filter
-		if (sectionName === 'asset_filter') return false;
+		// Default collapsed for the asset filter and credentials sections.
+		// These are optional and most users leave them at their defaults,
+		// so collapsing keeps the form tidy and avoids a large box jumping
+		// into view when the step opens.
+		if (sectionName === 'asset_filter' || sectionName === 'credentials') return false;
 
 		// Default to expanded for all other sections
 		return true;
@@ -511,6 +524,10 @@
 			return;
 		}
 		fetchPlugins();
+	});
+
+	onDestroy(() => {
+		if (pluginPollTimer) clearTimeout(pluginPollTimer);
 	});
 </script>
 
@@ -759,6 +776,18 @@
 					/>
 					Choose Data Source <span class="text-red-500 ml-1">*</span>
 				</h3>
+
+				{#if pluginsStillLoading}
+					<div
+						class="mb-4 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20 p-3 text-sm text-amber-800 dark:text-amber-200"
+						role="status"
+					>
+						<IconifyIcon icon="material-symbols:info-outline" class="h-5 w-5 flex-shrink-0" />
+						<span
+							>Plugins are still loading on the server. This list will refresh automatically.</span
+						>
+					</div>
+				{/if}
 
 				{#if loadingPlugins}
 					<div class="flex items-center justify-center py-12">
